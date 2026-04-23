@@ -1,33 +1,37 @@
-// ─────────────────────────────────────────────────────────────
-//  arcane-route :: src/ai/OpenAIProvider.ts
-//  ILLMClient implementation using the openai SDK
-//  Compatible with: OpenAI, Groq, Together, Ollama, any OpenAI-compatible API
-// ─────────────────────────────────────────────────────────────
+/*
+ * arcane-route :: src/ai/OpenAIProvider.ts
+ * ILLMClient implementation using the openai SDK
+ * Compatible with: OpenAI, Groq, Together, Ollama, any OpenAI-compatible API
+ */
 
 import OpenAI from 'openai';
-import type { ILLMClient } from './ILLMClient.ts';
 import type { ConfigManager } from '../core/ConfigManager.ts';
-import type {
-  SendMessageParams,
-  CorrectionParams,
-  ClaudeResponse,
-  LLMProvider,
-} from '../types/index.ts';
 import { ArcaneError } from '../types/errors.ts';
+import type {
+  ClaudeResponse,
+  CorrectionParams,
+  LLMProvider,
+  SendMessageParams,
+} from '../types/index.ts';
+import type { ILLMClient } from './ILLMClient.ts';
 import { ThinkingAdapter } from './ThinkingAdapter.ts';
 
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 1500;
 
 /**
- * OpenAI-compatible provider implementation.
- * Uses the openai SDK with configurable base URL for custom endpoints.
- * Does NOT support extended thinking tokens.
+ * OpenAI-compatible provider — ILLMClient implementation using the openai SDK.
+ * Supports any OpenAI-compatible endpoint (OpenAI, Groq, Together, Ollama, etc.)
+ * via configurable OPENAI_BASE_URL. Does NOT support extended thinking tokens.
  */
 export class OpenAIProvider implements ILLMClient {
   private readonly client: OpenAI;
   private readonly config: ConfigManager;
 
+  /**
+   * Build the OpenAI SDK client from ConfigManager.
+   * Uses OPENAI_BASE_URL to support custom/self-hosted endpoints.
+   */
   constructor(config: ConfigManager) {
     this.config = config;
     this.client = new OpenAI({
@@ -36,10 +40,12 @@ export class OpenAIProvider implements ILLMClient {
     });
   }
 
+  /** @inheritdoc Always returns `'openai'`. */
   public getProviderName(): LLMProvider {
     return 'openai';
   }
 
+  /** @inheritdoc Always returns `false` — OpenAI does not support extended thinking. */
   public supportsThinking(): boolean {
     return false;
   }
@@ -98,7 +104,8 @@ export class OpenAIProvider implements ILLMClient {
   }
 
   /**
-   * Non-streaming correction turn.
+   * Non-streaming correction turn — injects SWD failure context and retries.
+   * Builds a [SWD CORRECTION TURN] user message and delegates to sendMessage.
    */
   public async sendCorrectionTurn(params: CorrectionParams): Promise<ClaudeResponse> {
     const { messages, effort, failureSummary, attemptsRemaining } = params;
@@ -109,10 +116,7 @@ export class OpenAIProvider implements ILLMClient {
 
     return this.sendMessage({
       ...params,
-      messages: [
-        ...messages,
-        { role: 'user', content: correctionPrompt },
-      ],
+      messages: [...messages, { role: 'user', content: correctionPrompt }],
       effort,
     });
   }
@@ -156,8 +160,13 @@ export class OpenAIProvider implements ILLMClient {
     };
   }
 
-  // ── Retry Logic ───────────────────────────────────────────
+  // Retry Logic
 
+  /**
+   * Retry wrapper with exponential back-off for rate-limited OpenAI calls.
+   * Retries up to MAX_RETRIES times on rate_limit / 429 / 503 errors.
+   * Re-throws as ArcaneError(OPENAI_API_ERROR) after exhausting attempts.
+   */
   private async withRetry<T>(fn: () => Promise<T>): Promise<T> {
     let lastError: Error | null = null;
 
@@ -185,6 +194,7 @@ export class OpenAIProvider implements ILLMClient {
     );
   }
 
+  /** Promise-based delay helper used between retry attempts. */
   private delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }

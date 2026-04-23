@@ -1,7 +1,7 @@
-// ─────────────────────────────────────────────────────────────
-//  arcane-route :: src/ai/ConversationManager.ts
-//  Multi-turn message history — provider-agnostic
-// ─────────────────────────────────────────────────────────────
+/*
+ * arcane-route :: src/ai/ConversationManager.ts
+ * Multi-turn message history — provider-agnostic
+ */
 
 import type { Message } from '../types/index.ts';
 
@@ -14,8 +14,6 @@ const MAX_HISTORY_MESSAGES = 100;
  */
 export class ConversationManager {
   private messages: Message[] = [];
-
-  constructor() {}
 
   /** Add a user message to history. */
   public addUserMessage(content: string): void {
@@ -68,19 +66,17 @@ export class ConversationManager {
   }
 
   /**
-   * Rough token estimate for the current history.
-   * Uses a 4 chars/token approximation.
+   * Rough token estimate for the current history (4 chars per token).
+   * Used for budget display and memory injection decisions.
    */
   public getTokenEstimate(): number {
-    const totalChars = this.messages.reduce(
-      (sum, m) => sum + m.content.length,
-      0,
-    );
+    const totalChars = this.messages.reduce((sum, m) => sum + m.content.length, 0);
     return Math.ceil(totalChars / 4);
   }
 
   /**
    * Serialize the conversation for ARCANE_MEMORY.md summary logging.
+   * Each message is truncated to 80 characters to keep entries compact.
    */
   public serialize(): string {
     return this.messages
@@ -88,11 +84,12 @@ export class ConversationManager {
       .join('\n');
   }
 
-  // ── Pruning ───────────────────────────────────────────────
+  // Pruning
 
   /**
-   * Prune oldest user+assistant pairs when history grows too long.
-   * Always preserves the first 2 messages (memory context injection).
+   * Prune the oldest user+assistant pairs when history exceeds MAX_HISTORY_MESSAGES.
+   * Always keeps the first 2 messages (memory context injection) and the
+   * most recent (MAX_HISTORY_MESSAGES - 2) messages.
    */
   private pruneIfNeeded(): void {
     if (this.messages.length <= MAX_HISTORY_MESSAGES) return;

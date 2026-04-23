@@ -1,19 +1,19 @@
-// ─────────────────────────────────────────────────────────────
-//  arcane-route :: src/ai/ThinkingAdapter.ts
-//  Strategy: maps effort levels to Anthropic thinking configs
-// ─────────────────────────────────────────────────────────────
+/*
+ * arcane-route :: src/ai/ThinkingAdapter.ts
+ * Strategy: maps effort levels to Anthropic thinking configs
+ */
 
-import type { EffortLevel, ThinkingConfig } from '../types/index.ts';
 import { ConfigInvalidError } from '../types/errors.ts';
+import type { EffortLevel, ThinkingConfig } from '../types/index.ts';
 
-// ── Budget token map per effort level ────────────────────────
+// Budget token map per effort level
 const BUDGET_TOKENS: Record<EffortLevel, number> = {
   high: 10_000,
   medium: 5_000,
   low: 1_000,
 };
 
-// ── Temperature map per effort level (for OpenAI) ────────────
+// Temperature map per effort level (for OpenAI)
 export const TEMPERATURE_MAP: Record<EffortLevel, number> = {
   high: 0.2,
   medium: 0.5,

@@ -1,51 +1,62 @@
-// ─────────────────────────────────────────────────────────────
-//  arcane-route :: src/ai/AnthropicProvider.ts
-//  ILLMClient implementation using @anthropic-ai/sdk
-//  Supports extended thinking, streaming, and retry logic
-// ─────────────────────────────────────────────────────────────
+/*
+ * arcane-route :: src/ai/AnthropicProvider.ts
+ * ILLMClient implementation using @anthropic-ai/sdk
+ * Supports extended thinking, streaming, and retry logic
+ */
 
 import Anthropic from '@anthropic-ai/sdk';
-import type { ILLMClient } from './ILLMClient.ts';
 import type { ConfigManager } from '../core/ConfigManager.ts';
-import type {
-  SendMessageParams,
-  CorrectionParams,
-  ClaudeResponse,
-  LLMProvider,
-} from '../types/index.ts';
 import { ArcaneError } from '../types/errors.ts';
+import type {
+  ClaudeResponse,
+  CorrectionParams,
+  LLMProvider,
+  SendMessageParams,
+} from '../types/index.ts';
+import type { ILLMClient } from './ILLMClient.ts';
 import { ThinkingAdapter } from './ThinkingAdapter.ts';
 
-// ── Internal stream delta types ───────────────────────────────
-interface ThinkingDelta { type: 'thinking_delta'; thinking: string }
-interface TextDelta { type: 'text_delta'; text: string }
+// Internal stream delta types
+interface ThinkingDelta {
+  type: 'thinking_delta';
+  thinking: string;
+}
+interface TextDelta {
+  type: 'text_delta';
+  text: string;
+}
 type ContentDelta = ThinkingDelta | TextDelta;
 
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 2000;
 
 /**
- * Anthropic provider implementation.
- * Supports extended thinking (adaptive mode) and streaming.
+ * Anthropic provider — ILLMClient implementation using @anthropic-ai/sdk.
+ * Supports extended thinking (adaptive mode), streaming, and exponential
+ * retry on rate-limit (429 / 529 / "overloaded") responses.
  */
 export class AnthropicProvider implements ILLMClient {
   private readonly client: Anthropic;
   private readonly config: ConfigManager;
 
+  /**
+   * Build the Anthropic SDK client from ConfigManager.
+   * Optionally overrides base URL for custom proxy endpoints.
+   */
   constructor(config: ConfigManager) {
     this.config = config;
     this.client = new Anthropic({
       apiKey: config.getAnthropicApiKey(),
-      ...(config.getAnthropicBaseUrl()
-        ? { baseURL: config.getAnthropicBaseUrl() }
-        : {}),
+      ...(config.getAnthropicBaseUrl() ? { baseURL: config.getAnthropicBaseUrl() } : {}),
     });
   }
 
+  /** @inheritdoc Always returns `'anthropic'`. */
   public getProviderName(): LLMProvider {
     return 'anthropic';
   }
 
+  /** @inheritdoc Always returns `true` — Anthropic is the only provider with extended thinking. */
   public supportsThinking(): boolean {
     return true;
   }
@@ -63,9 +74,8 @@ export class AnthropicProvider implements ILLMClient {
     let thinking = '';
     let text = '';
 
-    // MessageStream is not a Promise — call directly without withRetry wrapper
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const streamParams: any = {
+    // MessageStream is not a Promise — build params with loose typing for SDK compat
+    const streamParams: Record<string, unknown> = {
       model,
       max_tokens: 16_384,
       thinking: { type: 'adaptive' },
@@ -74,16 +84,17 @@ export class AnthropicProvider implements ILLMClient {
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
     };
 
-    let stream;
+    let stream: ReturnType<typeof this.client.messages.stream>;
     try {
-      stream = this.client.messages.stream(streamParams);
+      stream = this.client.messages.stream(
+        streamParams as unknown as Parameters<typeof this.client.messages.stream>[0],
+      );
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       throw new ArcaneError(`Anthropic stream error: ${msg}`, 'CLAUDE_API_ERROR');
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    for await (const event of stream as any) {
+    for await (const event of stream) {
       if (event.type === 'content_block_delta') {
         const delta = event.delta as ContentDelta;
         if (delta.type === 'thinking_delta') {
@@ -96,8 +107,7 @@ export class AnthropicProvider implements ILLMClient {
       }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const final = await (stream as any).finalMessage();
+    const final = await stream.finalMessage();
     return {
       thinking,
       text,
@@ -120,10 +130,7 @@ export class AnthropicProvider implements ILLMClient {
 
     return this.sendMessage({
       ...params,
-      messages: [
-        ...messages,
-        { role: 'user', content: correctionPrompt },
-      ],
+      messages: [...messages, { role: 'user', content: correctionPrompt }],
       effort,
     });
   }
@@ -160,8 +167,13 @@ export class AnthropicProvider implements ILLMClient {
     };
   }
 
-  // ── Retry Logic ───────────────────────────────────────────
+  // Retry Logic
 
+  /**
+   * Retry wrapper with exponential back-off for rate-limited Anthropic calls.
+   * Retries up to MAX_RETRIES times on rate_limit / 529 / overloaded errors.
+   * Re-throws as ArcaneError(CLAUDE_API_ERROR) after exhausting attempts.
+   */
   private async withRetry<T>(fn: () => Promise<T>): Promise<T> {
     let lastError: Error | null = null;
 
@@ -189,6 +201,7 @@ export class AnthropicProvider implements ILLMClient {
     );
   }
 
+  /** Promise-based delay helper used between retry attempts. */
   private delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }

@@ -1,9 +1,14 @@
-// ─────────────────────────────────────────────────────────────
-//  arcane-route :: src/ai/ILLMClient.ts
-//  Provider-agnostic interface for all LLM clients
-// ─────────────────────────────────────────────────────────────
+/*
+ * arcane-route :: src/ai/ILLMClient.ts
+ * Provider-agnostic interface for all LLM clients
+ */
 
-import type { SendMessageParams, CorrectionParams, ClaudeResponse, LLMProvider } from '../types/index.ts';
+import type {
+  ClaudeResponse,
+  CorrectionParams,
+  LLMProvider,
+  SendMessageParams,
+} from '../types/index.ts';
 
 /**
  * Common interface that every LLM provider must implement.

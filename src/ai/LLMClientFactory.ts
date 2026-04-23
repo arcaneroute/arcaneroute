@@ -1,26 +1,28 @@
-// ─────────────────────────────────────────────────────────────
-//  arcane-route :: src/ai/LLMClientFactory.ts
-//  Factory: reads LLM_PROVIDER and returns the correct ILLMClient
-// ─────────────────────────────────────────────────────────────
+/*
+ * arcane-route :: src/ai/LLMClientFactory.ts
+ * Factory function: reads LLM_PROVIDER and returns the correct ILLMClient
+ */
 
-import type { ILLMClient } from './ILLMClient.ts';
 import type { ConfigManager } from '../core/ConfigManager.ts';
-import { AnthropicProvider } from './AnthropicProvider.ts';
-import { OpenAIProvider } from './OpenAIProvider.ts';
 import { UnknownProviderError } from '../types/errors.ts';
+import { AnthropicProvider } from './AnthropicProvider.ts';
+import type { ILLMClient } from './ILLMClient.ts';
+import { OpenAIProvider } from './OpenAIProvider.ts';
 
 /**
- * Factory class for creating LLM client instances.
- * Reads LLM_PROVIDER from ConfigManager and returns the appropriate provider.
- *
- * Usage:
- *   const client = LLMClientFactory.create(config);
- *   // Returns AnthropicProvider or OpenAIProvider based on env
+ * Factory for constructing the active ILLMClient.
+ * Always use this class — never instantiate providers directly.
  */
+// biome-ignore lint/complexity/noStaticOnlyClass: kept for API ergonomics / named import compatibility
 export class LLMClientFactory {
   /**
-   * Create and return the active LLM client.
-   * Throws UnknownProviderError if LLM_PROVIDER is not 'anthropic' or 'openai'.
+   * Create and return the active LLM client based on LLM_PROVIDER env var.
+   * Returns `AnthropicProvider` or `OpenAIProvider`.
+   *
+   * @throws {UnknownProviderError} if LLM_PROVIDER is not `'anthropic'` or `'openai'`.
+   *
+   * @example
+   *   const client = LLMClientFactory.create(config);
    */
   public static create(config: ConfigManager): ILLMClient {
     const provider = config.getProvider();
