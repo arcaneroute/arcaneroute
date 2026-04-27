@@ -7,10 +7,35 @@ export interface ArcaneRenderer {
   events: EventEmitter;
 }
 
-export async function createArcaneRenderer(): Promise<ArcaneRenderer> {
-  const renderer = await createCliRenderer({
-    exitOnCtrlC: true,
-  });
+export interface ArcaneRendererOptions {
+  screenMode?: "alternate-screen" | "main-screen" | "split-footer";
+  targetFps?: number;
+  consoleMode?: "console-overlay" | "disabled";
+  clearOnShutdown?: boolean;
+}
+
+export async function createArcaneRenderer(options: ArcaneRendererOptions = {}): Promise<ArcaneRenderer> {
+  const {
+    screenMode = "alternate-screen",
+    targetFps = 30,
+    consoleMode = "disabled", // Disable console overlay to avoid issues
+    clearOnShutdown = true,
+  } = options;
+
+  let renderer;
+  try {
+    renderer = await createCliRenderer({
+      exitOnCtrlC: true,
+      screenMode,
+      targetFps,
+      consoleMode,
+      clearOnShutdown,
+      useMouse: false, // Disable mouse to avoid TTY issues
+    });
+  } catch (error) {
+    console.error("Failed to create CLI renderer:", error);
+    throw error;
+  }
 
   const events = new EventEmitter();
 

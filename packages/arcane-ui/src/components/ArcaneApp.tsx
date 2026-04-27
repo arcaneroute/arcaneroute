@@ -1,5 +1,5 @@
-import { onMount, onCleanup } from "solid-js";
-import { useTerminalDimensions } from "@opentui/solid";
+import { onMount, onCleanup, createSignal } from "solid-js";
+import { useRenderer, onResize } from "@opentui/solid";
 import { Banner } from "./Banner";
 import { ChatPanel } from "./ChatPanel/ChatPanel";
 import { Sidebar } from "./Sidebar/Sidebar";
@@ -13,7 +13,8 @@ interface ArcaneAppProps {
 }
 
 export function ArcaneApp({ onSend, onCancel, commandHistory = [] }: ArcaneAppProps) {
-  const dims = useTerminalDimensions();
+  const renderer = useRenderer();
+  const [dims, setDims] = createSignal({ width: renderer.width, height: renderer.height });
   const { on } = useAppEvents();
 
   onMount(() => {
@@ -24,6 +25,10 @@ export function ArcaneApp({ onSend, onCancel, commandHistory = [] }: ArcaneAppPr
       unsubSend();
       unsubCancel();
     });
+  });
+
+  onResize((width, height) => {
+    setDims({ width, height });
   });
 
   return (

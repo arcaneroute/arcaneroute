@@ -25,6 +25,20 @@ export function Banner({ version = "0.1.0", provider = "openai", model = "claude
   const effortColor = effort === "high" ? "#00FFFF" : effort === "medium" ? "#FFFF00" : "#FFFFFF";
   const dimColor = "#808080";
 
+  // Get status message - must be a string
+  const statusMessage = () => {
+    switch (status) {
+      case "idle": return "Ready to assist. Type your message below.";
+      case "running": return "Processing your request...";
+      case "streaming": return "Receiving response from AI...";
+      case "verifying": return "Verifying file operations via SWD...";
+      case "writing": return "Writing files to disk...";
+      case "complete": return "Operation completed successfully.";
+      case "error": return "An error occurred. Check the output below.";
+      default: return "";
+    }
+  };
+
   return (
     <box
       borderStyle="single"
@@ -48,29 +62,21 @@ export function Banner({ version = "0.1.0", provider = "openai", model = "claude
       </box>
 
       <box marginTop={1}>
-        <text fg={dimColor}>
-          Provider: <text fg="#00FFFF">{provider.toUpperCase()}</text>
-          {" | "}Model: <text fg="#00FFFF">{model}</text>
-        </text>
+        <text fg={dimColor}>Provider: </text>
+        <text fg="#00FFFF">{provider.toUpperCase()}</text>
+        <text fg={dimColor}> | Model: </text>
+        <text fg="#00FFFF">{model}</text>
       </box>
 
       <box>
-        <text fg={dimColor}>
-          Effort: <text fg={effortColor}>{effort.toUpperCase()}</text>
-          {" | "}SWD: <text fg={swdActive ? "#00FF00" : "#FF0000"}>{swdActive ? "ACTIVE" : "INACTIVE"}</text>
-        </text>
+        <text fg={dimColor}>Effort: </text>
+        <text fg={effortColor}>{effort.toUpperCase()}</text>
+        <text fg={dimColor}> | SWD: </text>
+        <text fg={swdActive ? "#00FF00" : "#FF0000"}>{swdActive ? "ACTIVE" : "INACTIVE"}</text>
       </box>
 
       <box marginTop={1} paddingTop={1} borderStyle="single" borderColor={dimColor}>
-        <text fg={dimColor} attributes={2}>
-          {status === "idle" && "Ready to assist. Type your message below."}
-          {status === "running" && "Processing your request..."}
-          {status === "streaming" && "Receiving response from AI..."}
-          {status === "verifying" && "Verifying file operations via SWD..."}
-          {status === "writing" && "Writing files to disk..."}
-          {status === "complete" && "Operation completed successfully."}
-          {status === "error" && "An error occurred. Check the output below."}
-        </text>
+        <text fg={dimColor} attributes={2}>{statusMessage()}</text>
       </box>
     </box>
   );

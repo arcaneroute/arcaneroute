@@ -125,7 +125,10 @@ export class ArcaneApp {
     const { createArcaneRenderer, ArcaneApp, AppEventsProvider } = await import('arcane-ui');
     const { render } = await import('@opentui/solid');
 
-    const { renderer, events } = await createArcaneRenderer();
+    const { renderer, events } = await createArcaneRenderer({
+      screenMode: "main-screen",
+      consoleMode: "disabled",
+    });
 
     // Wire app state to UI events
     // Use underlying EventEmitter to bypass strict ArcaneEvent typing for UI-specific events
@@ -183,6 +186,10 @@ export class ArcaneApp {
       );
     } catch (error) {
       console.error('TUI Error:', error);
+      if (error instanceof Error) {
+        console.error('Stack trace:');
+        console.error(error.stack);
+      }
       renderer.destroy();
       return this.runChatANSI(rawOptions);
     }

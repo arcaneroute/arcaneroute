@@ -1,4 +1,4 @@
-import { createSignal, onMount, onCleanup } from "solid-js";
+import { createSignal, onMount, onCleanup, Show } from "solid-js";
 import { useKeyboard } from "@opentui/solid";
 import { useAppEvents } from "../../events/useAppEvents";
 
@@ -88,7 +88,9 @@ export function ChatInput({ disabled = false, commandHistory = [] }: ChatInputPr
       <box alignItems="center" gap={1}>
         <text fg="#00FFFF" attributes={BOLD}>&gt;</text>
         <text fg="#FFFFFF">{input()}</text>
-        {cursorVisible() && <text fg="#00FFFF">_</text>}
+        <Show when={cursorVisible()}>
+          <text fg="#00FFFF">_</text>
+        </Show>
         <text fg={dimColor}>[Enter]</text>
       </box>
 

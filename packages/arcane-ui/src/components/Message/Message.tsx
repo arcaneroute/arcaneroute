@@ -1,4 +1,4 @@
-import { For } from "solid-js";
+import { For, Show } from "solid-js";
 import type { ChatMessage, FileAction } from "../../types";
 
 interface MessageProps {
@@ -20,14 +20,14 @@ export function Message({ message }: MessageProps) {
       <box marginTop={1}>
         <text fg="#FFFFFF">{message.text}</text>
       </box>
-      {message.fileActions && message.fileActions.length > 0 && (
+      <Show when={message.fileActions && message.fileActions.length > 0}>
         <box flexDirection="column" marginTop={1} padding={1} borderStyle="rounded" borderColor={dimColor}>
           <text fg={dimColor} attributes={1}>File Actions:</text>
           <For each={message.fileActions}>
             {(action) => <FileActionBlock action={action} />}
           </For>
         </box>
-      )}
+      </Show>
     </box>
   );
 }
