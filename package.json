@@ -21,9 +21,13 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.20.0",
     "@types/node": "^25.6.0",
+    "arcane-ui": "workspace:*",
     "chalk": "^5.3.0",
     "commander": "^12.0.0",
+    "ink": "^4.4.0",
     "openai": "^4.52.0",
+    "react": "^18.3.1",
+    "react-devtools-core": "^7.0.1",
     "semver": "^7.7.4"
   },
   "devDependencies": {

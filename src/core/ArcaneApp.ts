@@ -43,6 +43,13 @@ export class ArcaneApp {
   }
 
   /**
+   * Check if TUI mode is enabled via environment variable.
+   */
+  private isTUIMode(): boolean {
+    return process.env.TUI_ENABLED === 'true';
+  }
+
+  /**
    * Parse raw CLI options, build all chat dependencies, and run `ChatCommand`.
    * Validates provider API key before any I/O occurs.
    */
@@ -56,6 +63,84 @@ export class ArcaneApp {
     // Validate provider API key
     this.config.validate();
 
+    // Check TUI mode
+    if (this.isTUIMode()) {
+      await this.runChatTUI(rawOptions);
+    } else {
+      await this.runChatANSI(rawOptions);
+    }
+  }
+
+  /**
+   * Run chat in TUI mode using arcane-ui (Ink/React).
+   */
+  private async runChatTUI(rawOptions: {
+    effort?: string;
+    dryRun?: boolean;
+    verbose?: boolean;
+    maxTokens?: string;
+    maxTurns?: string;
+  }): Promise<void> {
+    const adapter = ThinkingAdapter.fromString(rawOptions.effort ?? 'high');
+    const parsedMaxTokens = rawOptions.maxTokens ? parseInt(rawOptions.maxTokens, 10) : undefined;
+    const parsedMaxTurns = rawOptions.maxTurns ? parseInt(rawOptions.maxTurns, 10) : undefined;
+
+    const options: ChatOptions = {
+      effort: adapter.getEffort(),
+      dryRun: rawOptions.dryRun ?? false,
+      verbose: rawOptions.verbose ?? false,
+      ...(parsedMaxTokens !== undefined ? { maxTokens: parsedMaxTokens } : {}),
+      ...(parsedMaxTurns !== undefined ? { maxTurns: parsedMaxTurns } : {}),
+    };
+
+    // Build deps but don't run ChatCommand yet - TUI takes over
+    const { client, swdEngine, memoryManager, budgetLimiter, conversationManager } =
+      this.buildChatDeps(options);
+
+    // Wire up plugin dependencies before loading plugins
+    this.pluginLoader.setBudgetLimiter({
+      recordUsage: (tokens) => budgetLimiter.recordTurn(tokens),
+    });
+    this.pluginLoader.setLLMClient({
+      send: (prompt, system) =>
+        client
+          .sendMessage({
+            messages: [{ role: 'user' as const, content: prompt }],
+            effort: 'medium',
+            ...(system ? { systemPrompt: system } : {}),
+          })
+          .then((res) => ({ text: res.text, tokens: res.usage })),
+    });
+
+    // Load all enabled plugins
+    await this.pluginLoader.loadAll();
+
+    // Import and render arcane-ui
+    const ink = await import('ink');
+    const { ArcaneApp: TUIApp } = await import('arcane-ui');
+
+    // Render the TUI app
+    const app = ink.render(
+      TUIApp({
+        mode: 'chat',
+        config: this.config,
+      })
+    );
+
+    // Wait for the app to exit
+    await app.waitUntilExit();
+  }
+
+  /**
+   * Run chat in ANSI mode (existing implementation).
+   */
+  private async runChatANSI(rawOptions: {
+    effort?: string;
+    dryRun?: boolean;
+    verbose?: boolean;
+    maxTokens?: string;
+    maxTurns?: string;
+  }): Promise<void> {
     const adapter = ThinkingAdapter.fromString(rawOptions.effort ?? 'high');
     const parsedMaxTokens = rawOptions.maxTokens ? parseInt(rawOptions.maxTokens, 10) : undefined;
     const parsedMaxTurns = rawOptions.maxTurns ? parseInt(rawOptions.maxTurns, 10) : undefined;
@@ -72,7 +157,6 @@ export class ArcaneApp {
       this.buildChatDeps(options);
 
     // Wire up plugin dependencies before loading plugins
-    // Create adapters to match the expected interfaces
     this.pluginLoader.setBudgetLimiter({
       recordUsage: (tokens) => budgetLimiter.recordTurn(tokens),
     });
