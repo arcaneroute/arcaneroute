@@ -21,6 +21,7 @@ import { PluginRegistry } from '../plugins/PluginRegistry.ts';
 import type { ChatOptions, DreamOptions, VerifyOptions } from '../types/index.ts';
 import { ConfigManager } from './ConfigManager.ts';
 import { EventBus } from './EventBus.ts';
+import { EventEmitter } from 'node:events';
 
 /**
  * Root application bootstrapper.
@@ -72,7 +73,7 @@ export class ArcaneApp {
   }
 
   /**
-   * Run chat in TUI mode using arcane-ui (Ink/React).
+   * Run chat in TUI mode using arcane-ui (OpenTUI).
    */
   private async runChatTUI(rawOptions: {
     effort?: string;
@@ -81,6 +82,11 @@ export class ArcaneApp {
     maxTokens?: string;
     maxTurns?: string;
   }): Promise<void> {
+    if (!process.stdin.isTTY) {
+      console.warn("TUI requires a TTY environment. Falling back to ANSI mode.");
+      return this.runChatANSI(rawOptions);
+    }
+
     const adapter = ThinkingAdapter.fromString(rawOptions.effort ?? 'high');
     const parsedMaxTokens = rawOptions.maxTokens ? parseInt(rawOptions.maxTokens, 10) : undefined;
     const parsedMaxTurns = rawOptions.maxTurns ? parseInt(rawOptions.maxTurns, 10) : undefined;
@@ -115,20 +121,71 @@ export class ArcaneApp {
     // Load all enabled plugins
     await this.pluginLoader.loadAll();
 
-    // Import and render arcane-ui
-    const ink = await import('ink');
-    const { ArcaneApp: TUIApp } = await import('arcane-ui');
+    // Import OpenTUI-based arcane-ui
+    const { createArcaneRenderer, ArcaneApp, AppEventsProvider } = await import('arcane-ui');
+    const { render } = await import('@opentui/solid');
 
-    // Render the TUI app
-    const app = ink.render(
-      TUIApp({
-        mode: 'chat',
-        config: this.config,
-      })
-    );
+    const { renderer, events } = await createArcaneRenderer();
 
-    // Wait for the app to exit
-    await app.waitUntilExit();
+    // Wire app state to UI events
+    // Use underlying EventEmitter to bypass strict ArcaneEvent typing for UI-specific events
+    const bus = this.eventBus as EventEmitter;
+    bus.on('app:status', ({ status }: { status: string }) => {
+      events.emit('app:status', { status });
+    });
+
+    bus.on('app:budget', ({ budget }: { budget: any }) => {
+      events.emit('app:budget', { budget });
+    });
+
+    bus.on('app:memory', ({ memory }: { memory: any }) => {
+      events.emit('app:memory', { memory });
+    });
+
+    bus.on('app:swd', ({ swd }: { swd: any }) => {
+      events.emit('app:swd', { swd });
+    });
+
+    bus.on('app:message', ({ message }: { message: any }) => {
+      events.emit('app:message', { message });
+    });
+
+    bus.on('app:stream', ({ chunk }: { chunk: string }) => {
+      events.emit('app:stream', { chunk });
+    });
+
+    bus.on('app:stream-end', () => {
+      events.emit('app:stream-end', undefined);
+    });
+
+    // Handle user input from TUI
+    events.on('user:send', ({ text }: { text: string }) => {
+      bus.emit('user:message', { text });
+    });
+
+    events.on('user:cancel', () => {
+      bus.emit('user:cancel', undefined);
+    });
+
+    try {
+      // Render the TUI app using Solid render
+      await render(
+        () => (
+          <AppEventsProvider events={events}>
+            <ArcaneApp
+              onSend={(text) => bus.emit('user:message', { text })}
+              onCancel={() => bus.emit('user:cancel', undefined)}
+              commandHistory={[]}
+            />
+          </AppEventsProvider>
+        ),
+        renderer
+      );
+    } catch (error) {
+      console.error('TUI Error:', error);
+      renderer.destroy();
+      return this.runChatANSI(rawOptions);
+    }
   }
 
   /**

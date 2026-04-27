@@ -17,7 +17,9 @@
     "types": [
       "bun-types"
     ],
-    "verbatimModuleSyntax": true
+    "verbatimModuleSyntax": true,
+    "jsx": "preserve",
+    "jsxImportSource": "@opentui/solid"
   },
   "exclude": [
     "node_modules",

@@ -5,7 +5,7 @@
  */
 
 import { Command } from 'commander';
-import { ArcaneApp } from '../core/ArcaneApp.ts';
+import { ArcaneApp } from '../core/ArcaneApp';
 import { PluginManager } from '../plugins/PluginManager.ts';
 
 const DEFAULT_MAX_TOKENS = '100000';

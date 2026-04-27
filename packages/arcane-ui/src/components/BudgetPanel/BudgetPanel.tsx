@@ -1,24 +1,31 @@
-import React from 'react';
-import { Box, Text } from 'ink';
-import type { BudgetPanelProps } from './BudgetPanelProps';
-import { ProgressBar } from '../ProgressBar/ProgressBar';
-import { getBudgetColor } from '../../types/budget';
+import { useAppEvents } from "../../events/useAppEvents";
 
-export function BudgetPanel({ budget }: BudgetPanelProps) {
-  const percentUsed = (budget.totalTokens / budget.maxTokens) * 100;
-  const turnsRemaining = budget.maxTurns - budget.turns;
-  const color = getBudgetColor(percentUsed);
+export function BudgetPanel() {
+  const { state } = useAppEvents();
+  const budget = () => state().budget;
+  const percentUsed = () => (budget().totalTokens / budget().maxTokens) * 100;
+  const turnsRemaining = () => budget().maxTurns - budget().turns;
+  const dimColor = "#808080";
 
   return (
-    <Box flexDirection="column" borderStyle="round" padding={1}>
-      <Text bold>Budget</Text>
-      <Text>
-        Tokens: {budget.totalTokens.toLocaleString()} / {budget.maxTokens.toLocaleString()}
-      </Text>
-      <Text>Cost: ${budget.estimatedCostUSD.toFixed(4)}</Text>
-      <Text>Turns: {budget.turns} / {budget.maxTurns}</Text>
-      <ProgressBar value={percentUsed} color={color} />
-      <Text dimColor>{turnsRemaining} turns remaining</Text>
-    </Box>
+    <box flexDirection="column" borderStyle="rounded" borderColor={dimColor} padding={1}>
+      <text fg="#FFFFFF" attributes={1}>Budget</text>
+      <box marginTop={1}>
+        <text fg={dimColor}>Tokens: {budget().totalTokens.toLocaleString()} / {budget().maxTokens.toLocaleString()}</text>
+      </box>
+      <box>
+        <text fg={dimColor}>Cost: ${budget().estimatedCostUSD.toFixed(4)}</text>
+      </box>
+      <box>
+        <text fg={dimColor}>Turns: {budget().turns} / {budget().maxTurns}</text>
+      </box>
+      <box marginTop={1}>
+        <text fg="#00FF00">{"░".repeat(Math.floor(percentUsed() / 5))}</text>
+        <text fg="#444444">{"░".repeat(20 - Math.floor(percentUsed() / 5))}</text>
+      </box>
+      <box>
+        <text fg={dimColor}>{turnsRemaining()} turns remaining</text>
+      </box>
+    </box>
   );
 }

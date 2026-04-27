@@ -1,45 +1,52 @@
-import React, { useState, useEffect } from 'react';
-import { Box, Text } from 'ink';
-import { useInput } from 'ink';
-import type { ChatInputProps } from './ChatInputProps';
+import { createSignal, onMount, onCleanup } from "solid-js";
+import { useKeyboard } from "@opentui/solid";
+import { useAppEvents } from "../../events/useAppEvents";
 
-export function ChatInput({ onSend, onCancel, commandHistory = [], disabled = false }: ChatInputProps) {
-  const [input, setInput] = useState('');
-  const [historyIndex, setHistoryIndex] = useState(-1);
-  const [cursorVisible, setCursorVisible] = useState(true);
+const BOLD = 1;
+const ITALIC = 2;
 
-  // Blinking cursor effect
-  useEffect(() => {
+interface ChatInputProps {
+  disabled?: boolean;
+  commandHistory?: string[];
+}
+
+export function ChatInput({ disabled = false, commandHistory = [] }: ChatInputProps) {
+  const [input, setInput] = createSignal("");
+  const [historyIndex, setHistoryIndex] = createSignal(-1);
+  const [cursorVisible, setCursorVisible] = createSignal(true);
+  const { emit } = useAppEvents();
+
+  onMount(() => {
     const interval = setInterval(() => {
-      setCursorVisible((v) => !v);
+      setCursorVisible(v => !v);
     }, 500);
-    return () => clearInterval(interval);
-  }, []);
+    onCleanup(() => clearInterval(interval));
+  });
 
-  useInput((char, key) => {
+  useKeyboard((key) => {
     if (disabled) return;
 
-    if (key.return && !key.shift) {
-      if (input.trim()) {
-        onSend(input);
-        setInput('');
+    if (key.name === "return" && !key.shift) {
+      if (input().trim()) {
+        emit("user:send", { text: input() });
+        setInput("");
         setHistoryIndex(-1);
       }
-    } else if (key.return && key.shift) {
-      setInput((prev) => prev + '\n');
-    } else if (key.upArrow) {
-      setHistoryIndex((prev) => {
+    } else if (key.name === "return" && key.shift) {
+      setInput(prev => prev + "\n");
+    } else if (key.name === "upArrow") {
+      setHistoryIndex(prev => {
         const newIndex = Math.min(prev + 1, commandHistory.length - 1);
         if (newIndex >= 0 && commandHistory[commandHistory.length - 1 - newIndex]) {
           setInput(commandHistory[commandHistory.length - 1 - newIndex]);
         }
         return newIndex;
       });
-    } else if (key.downArrow) {
-      setHistoryIndex((prev) => {
+    } else if (key.name === "downArrow") {
+      setHistoryIndex(prev => {
         const newIndex = prev - 1;
         if (newIndex < 0) {
-          setInput('');
+          setInput("");
           return -1;
         }
         if (commandHistory[commandHistory.length - 1 - newIndex]) {
@@ -47,61 +54,58 @@ export function ChatInput({ onSend, onCancel, commandHistory = [], disabled = fa
         }
         return newIndex;
       });
-    } else if (key.ctrl && char === 'c') {
-      onCancel();
-    } else if (key.escape) {
-      setInput('');
+    } else if (key.ctrl && key.name === "c") {
+      emit("user:cancel", undefined);
+    } else if (key.name === "escape") {
+      setInput("");
       setHistoryIndex(-1);
-    } else if (key.backspace || key.delete) {
-      setInput((prev) => prev.slice(0, -1));
-    } else if (char && char.length === 1 && !key.ctrl && !key.meta) {
-      setInput((prev) => prev + char);
+    } else if (key.name === "backspace" || key.name === "delete") {
+      setInput(prev => prev.slice(0, -1));
+    } else if (key.sequence && key.sequence.length === 1 && !key.ctrl && !key.meta) {
+      setInput(prev => prev + key.sequence);
     }
   });
 
-  const borderColor = disabled ? 'gray' : 'cyan';
-  const borderStyle = disabled ? 'round' : 'bold';
+  const borderColor = disabled ? "#808080" : "#00FFFF";
+  const dimColor = "#808080";
 
   return (
-    <Box
+    <box
       flexDirection="column"
-      borderStyle={borderStyle}
+      borderStyle="single"
       borderColor={borderColor}
       padding={1}
       marginTop={1}
     >
-      {/* Focus indicator */}
-      <Box alignItems="center" gap={1} marginBottom={1}>
-        <Text dimColor>[</Text>
-        <Text bold color={disabled ? 'gray' : 'cyan'}>CHAT INPUT</Text>
-        <Text dimColor>|</Text>
-        <Text color={disabled ? 'gray' : 'green'}>●</Text>
-        <Text dimColor>]</Text>
-      </Box>
+      <box alignItems="center" gap={1} marginBottom={1}>
+        <text fg={dimColor}>[</text>
+        <text fg={disabled ? dimColor : "#00FFFF"} attributes={BOLD}>CHAT INPUT</text>
+        <text fg={dimColor}>|</text>
+        <text fg={disabled ? dimColor : "#00FF00"}>●</text>
+        <text fg={dimColor}>]</text>
+      </box>
 
-      {/* Input line */}
-      <Box alignItems="center" gap={1}>
-        <Text bold color="cyan">{'>'}</Text>
-        <Text color="white">{input}</Text>
-        {cursorVisible && <Text color="cyan" bold>_</Text>}
-        <Text dimColor>[Enter]</Text>
-      </Box>
+      <box alignItems="center" gap={1}>
+        <text fg="#00FFFF" attributes={BOLD}>&gt;</text>
+        <text fg="#FFFFFF">{input()}</text>
+        {cursorVisible() && <text fg="#00FFFF">_</text>}
+        <text fg={dimColor}>[Enter]</text>
+      </box>
 
-      {/* Status line */}
       {disabled ? (
-        <Box marginTop={1} alignItems="center" gap={1}>
-          <Text color="yellow" dimColor>●</Text>
-          <Text dimColor italic>Processing...</Text>
-        </Box>
+        <box marginTop={1} alignItems="center" gap={1}>
+          <text fg="#FFFF00">●</text>
+          <text fg={dimColor} attributes={ITALIC}>Processing...</text>
+        </box>
       ) : (
-        <Box marginTop={1} alignItems="center" gap={2}>
-          <Text dimColor>↑↓ history</Text>
-          <Text dimColor>|</Text>
-          <Text dimColor>Shift+Enter newline</Text>
-          <Text dimColor>|</Text>
-          <Text dimColor>Ctrl+C cancel</Text>
-        </Box>
+        <box marginTop={1} alignItems="center" gap={2}>
+          <text fg={dimColor}>↑↓ history</text>
+          <text fg={dimColor}>|</text>
+          <text fg={dimColor}>Shift+Enter newline</text>
+          <text fg={dimColor}>|</text>
+          <text fg={dimColor}>Ctrl+C cancel</text>
+        </box>
       )}
-    </Box>
+    </box>
   );
 }

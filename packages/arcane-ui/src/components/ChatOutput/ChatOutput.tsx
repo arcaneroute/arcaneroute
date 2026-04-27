@@ -1,53 +1,54 @@
-import React from 'react';
-import { Box, Text } from 'ink';
-import type { ChatOutputProps } from './ChatOutputProps';
-import { Message } from '../Message/Message';
-import { StreamingIndicator } from '../StreamingIndicator/StreamingIndicator';
+import { For, Show } from "solid-js";
+import { Message } from "../Message/Message";
+import { useAppEvents } from "../../events/useAppEvents";
 
-export function ChatOutput({ messages, streamingText, isStreaming }: ChatOutputProps) {
-  const hasMessages = messages.length > 0;
+export function ChatOutput() {
+  const { state } = useAppEvents();
+  const messages = () => state().messages;
+  const streamingText = () => state().streamingText;
+  const isStreaming = () => state().isStreaming;
+  const hasMessages = () => messages().length > 0;
+  const dimColor = "#808080";
 
   return (
-    <Box
+    <box
       flexDirection="column"
-      borderStyle="round"
-      borderColor="dimColor"
+      borderStyle="rounded"
+      borderColor={dimColor}
       padding={1}
       flexGrow={1}
-      overflow="hidden"
     >
-      {/* Output indicator */}
-      <Box alignItems="center" gap={1} marginBottom={1}>
-        <Text dimColor>[</Text>
-        <Text bold color="white">CHAT OUTPUT</Text>
-        <Text dimColor>|</Text>
-        <Text dimColor>●</Text>
-        <Text dimColor>]</Text>
-      </Box>
+      <box alignItems="center" gap={1} marginBottom={1}>
+        <text fg={dimColor}>[</text>
+        <text fg="#FFFFFF" attributes={1}>CHAT OUTPUT</text>
+        <text fg={dimColor}>|</text>
+        <text fg={dimColor}>●</text>
+        <text fg={dimColor}>]</text>
+      </box>
 
-      {!hasMessages && !isStreaming && (
-        <Box flexDirection="column" alignItems="center" justifyContent="center" flexGrow={1}>
-          <Text bold color="magenta">✦</Text>
-          <Text bold color="cyan">Welcome to Arcane Route</Text>
-          <Text dimColor>Type your message below to start</Text>
-          <Text dimColor>Use /help for available commands</Text>
-        </Box>
-      )}
+      <Show when={!hasMessages() && !isStreaming()}>
+        <box flexDirection="column" alignItems="center" justifyContent="center" flexGrow={1}>
+          <text fg="#FF00FF" attributes={1}>✦</text>
+          <text fg="#00FFFF" attributes={1}>Welcome to Arcane Route</text>
+          <text fg={dimColor}>Type your message below to start</text>
+          <text fg={dimColor}>Use /help for available commands</text>
+        </box>
+      </Show>
 
-      {hasMessages && (
-        <Box flexDirection="column" overflow="hidden">
-          {messages.map((msg) => (
-            <Message key={msg.id} message={msg} />
-          ))}
-        </Box>
-      )}
+      <Show when={hasMessages()}>
+        <box flexDirection="column">
+          <For each={messages()}>
+            {(msg) => <Message message={msg} />}
+          </For>
+        </box>
+      </Show>
 
-      {isStreaming && (
-        <Box flexDirection="column">
-          <StreamingIndicator />
-          <Text color="white">{streamingText}</Text>
-        </Box>
-      )}
-    </Box>
+      <Show when={isStreaming()}>
+        <box flexDirection="column">
+          <text fg="#FFFF00">◐ STREAMING...</text>
+          <text fg="#FFFFFF">{streamingText()}</text>
+        </box>
+      </Show>
+    </box>
   );
 }

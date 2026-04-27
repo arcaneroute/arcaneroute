@@ -1,18 +1,17 @@
-import React from 'react';
-import { Box, Text } from 'ink';
-
 export function StatusBar() {
+  const dimColor = "#808080";
+
   return (
-    <Box borderStyle="single" paddingX={1}>
-      <Text dimColor>
-        <Text>↑↓ Navigate</Text>
-        <Text dimColor> | </Text>
-        <Text>Enter Send</Text>
-        <Text dimColor> | </Text>
-        <Text>Shift+Enter Newline</Text>
-        <Text dimColor> | </Text>
-        <Text>Ctrl+C Cancel</Text>
-      </Text>
-    </Box>
+    <box
+      borderStyle="single"
+      borderColor={dimColor}
+      padding={1}
+      marginTop={1}
+      justifyContent="center"
+    >
+      <text fg={dimColor}>
+        ↑↓ Navigate | Enter Send | Shift+Enter Newline | Ctrl+C Cancel
+      </text>
+    </box>
   );
 }

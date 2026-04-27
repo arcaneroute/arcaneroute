@@ -1,37 +1,19 @@
-import React from 'react';
-import { Box, Text } from 'ink';
-import type { SWDStatusProps } from './SWDStatusProps';
+import { useAppEvents } from "../../events/useAppEvents";
 
-const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
-  idle: { color: 'white', label: 'Ready' },
-  'pre-snapshot': { color: 'cyan', label: 'Capturing...' },
-  verifying: { color: 'cyan', label: 'Verifying...' },
-  verified: { color: 'green', label: 'Verified' },
-  failed: { color: 'red', label: 'Failed' },
-  unmatched: { color: 'yellow', label: 'Unmatched' },
-};
+export function SWDStatus() {
+  const { state } = useAppEvents();
+  const swd = () => state().swd;
+  const dimColor = "#808080";
 
-export function SWDStatus({ swd }: SWDStatusProps) {
-  const config = STATUS_CONFIG[swd.status] || STATUS_CONFIG.idle;
-  const statusIcon = swd.status === 'verified' ? '✅' : swd.status === 'failed' ? '❌' : swd.status === 'unmatched' ? '⚠️' : '';
+  const statusColor = () => swd().status === "ready" ? "#00FF00" : swd().status === "busy" ? "#FFFF00" : dimColor;
 
   return (
-    <Box flexDirection="column" borderStyle="round" padding={1}>
-      <Text bold>SWD</Text>
-      <Text>
-        <Text dimColor>Status: </Text>
-        <Text color={config.color}>
-          {statusIcon} {config.label}
-        </Text>
-      </Text>
-      {swd.fileCount !== undefined && (
-        <Text dimColor>Files: {swd.fileCount}</Text>
-      )}
-      {swd.verifiedCount !== undefined && (
-        <Text dimColor>
-          Verified: {swd.verifiedCount} · Failed: {swd.failedCount}
-        </Text>
-      )}
-    </Box>
+    <box flexDirection="column" borderStyle="rounded" borderColor={dimColor} padding={1}>
+      <text fg="#FFFFFF" attributes={1}>SWD</text>
+      <box marginTop={1}>
+        <text fg={dimColor}>Status: </text>
+        <text fg={statusColor()}>{swd().status.toUpperCase()}</text>
+      </box>
+    </box>
   );
 }

@@ -1,18 +1,25 @@
-import React from 'react';
-import { Box, Text } from 'ink';
-import type { MemoryStatusProps } from './MemoryStatusProps';
+import { useAppEvents } from "../../events/useAppEvents";
 
-export function MemoryStatus({ memory }: MemoryStatusProps) {
-  const statusColor = memory.status === 'normal' ? 'green' : memory.status === 'warning' ? 'yellow' : 'red';
+export function MemoryStatus() {
+  const { state } = useAppEvents();
+  const memory = () => state().memory;
+  const dimColor = "#808080";
+
+  const statusColor = () => memory().status === "normal" ? "#00FF00" : memory().status === "warning" ? "#FFFF00" : "#FF0000";
 
   return (
-    <Box flexDirection="column" borderStyle="round" padding={1}>
-      <Text bold>Memory</Text>
-      <Text>Entries: {memory.entryCount}</Text>
-      <Text>Size: {memory.sizeKb.toFixed(1)} KB</Text>
-      <Text>
-        Status: <Text color={statusColor}>{memory.status.toUpperCase()}</Text>
-      </Text>
-    </Box>
+    <box flexDirection="column" borderStyle="rounded" borderColor={dimColor} padding={1}>
+      <text fg="#FFFFFF" attributes={1}>Memory</text>
+      <box marginTop={1}>
+        <text fg={dimColor}>Entries: {memory().entryCount}</text>
+      </box>
+      <box>
+        <text fg={dimColor}>Size: {memory().sizeKb.toFixed(1)} KB</text>
+      </box>
+      <box>
+        <text fg={dimColor}>Status: </text>
+        <text fg={statusColor()}>{memory().status.toUpperCase()}</text>
+      </box>
+    </box>
   );
 }

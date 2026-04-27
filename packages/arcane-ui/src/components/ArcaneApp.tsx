@@ -1,47 +1,44 @@
-import React, { useEffect } from 'react';
-import { Box } from 'ink';
-import { ArcaneUIProvider, useArcanUIContext } from '../context';
-import { Banner } from './Banner';
-import { Layout } from './Layout';
-import { StatusBar } from './StatusBar';
-import type { ArcaneAppProps } from './ArcaneAppProps';
+import { onMount, onCleanup } from "solid-js";
+import { useTerminalDimensions } from "@opentui/solid";
+import { Banner } from "./Banner";
+import { ChatPanel } from "./ChatPanel/ChatPanel";
+import { Sidebar } from "./Sidebar/Sidebar";
+import { StatusBar } from "./StatusBar/StatusBar";
+import { useAppEvents } from "../events/useAppEvents";
 
-function ArcaneAppInner({ config }: { config: ArcaneAppProps['config'] }) {
-  const { mode, appStatus } = useArcanUIContext();
-
-  // Get config values
-  const provider = config.getProvider();
-  const model = provider === 'anthropic' ? config.getAnthropicModel() : config.getOpenAIModel();
-  const effort = (config.get('DEFAULT_EFFORT', 'high') || 'high') as 'high' | 'medium' | 'low';
-
-  useEffect(() => {
-    // Future: setup EventBus subscriptions here
-  }, []);
-
-  return (
-    <Box flexDirection="column" flexGrow={1} padding={1}>
-      <Banner
-        version="0.1.0"
-        provider={provider}
-        model={model}
-        effort={effort}
-        swdActive={true}
-        status={appStatus}
-      />
-      <Box flexGrow={1} marginTop={1}>
-        <Layout />
-      </Box>
-      <Box marginTop={1}>
-        <StatusBar />
-      </Box>
-    </Box>
-  );
+interface ArcaneAppProps {
+  onSend?: (text: string) => void;
+  onCancel?: () => void;
+  commandHistory?: string[];
 }
 
-export function ArcaneApp(props: ArcaneAppProps) {
+export function ArcaneApp({ onSend, onCancel, commandHistory = [] }: ArcaneAppProps) {
+  const dims = useTerminalDimensions();
+  const { on } = useAppEvents();
+
+  onMount(() => {
+    const unsubSend = on("user:send", ({ text }: { text: string }) => onSend?.(text));
+    const unsubCancel = on("user:cancel", () => onCancel?.());
+
+    onCleanup(() => {
+      unsubSend();
+      unsubCancel();
+    });
+  });
+
   return (
-    <ArcaneUIProvider>
-      <ArcaneAppInner config={props.config} />
-    </ArcaneUIProvider>
+    <box
+      width={dims().width}
+      height={dims().height}
+      flexDirection="column"
+      padding={1}
+    >
+      <Banner />
+      <box flexDirection="row" flexGrow={1} marginTop={1}>
+        <ChatPanel onSend={onSend} onCancel={onCancel} commandHistory={commandHistory} />
+        <Sidebar />
+      </box>
+      <StatusBar />
+    </box>
   );
 }
