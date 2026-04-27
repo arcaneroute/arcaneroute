@@ -109,7 +109,7 @@ chat: exit
 - [MODIFY] `src/cli/Spinner.ts`
 
 ### Summary
-Perbaikan docstring menyeluruh: memperjelas class descriptions, menambahkan @throws/@returns/@example pada method kritis, memperbaiki docstring yang tidak akurat (handleError tidak exit process, withRetry menjelaskan error codes spesifik per provider), menambahkan docstring pada private methods yang sebelumnya tidak terdokumentasi (render, walkDir, buildChatDeps, dll), dan menandai internal methods dengan @internal.
+Comprehensive docstring improvements: clarified class descriptions, added @throws/@returns/@example to critical methods, fixed inaccurate docstrings (handleError does not exit process, withRetry explains specific error codes per provider), added docstrings to previously undocumented private methods (render, walkDir, buildChatDeps, etc.), and marked internal methods with @internal.
 
 ---
 
@@ -145,7 +145,7 @@ Perbaikan docstring menyeluruh: memperjelas class descriptions, menambahkan @thr
 - [MODIFY] `src/budget/CostTracker.ts`
 
 ### Summary
-Menghapus semua karakter unicode box-drawing (─ U+2500) dari seluruh codebase: border file header (// ───...───) dihapus, section divider (// ── Label ───) dikonversi menjadi plain comment (// Label). Total 27 file dimodifikasi via Python script.
+Removed all box-drawing unicode characters (─ U+2500) from entire codebase: file header borders (// ───...───) removed, section dividers (// ── Label ───) converted to plain comments (// Label). Total 27 files modified via Python script.
 
 ---
 
@@ -155,7 +155,7 @@ Menghapus semua karakter unicode box-drawing (─ U+2500) dari seluruh codebase:
 - [CREATE] `.cache/PLUGIN_PHASES.md`
 
 ### Summary
-Membuat roadmap pengembangan sistem plugin yang detail berdasarkan PLUGIN_CONCEPT.md di folder `.cache/`. Dokumen ini membagi implementasi menjadi 4 fase: Foundation, Integration, SDK, dan Refinement.
+Created detailed plugin system development roadmap based on PLUGIN_CONCEPT.md in `.cache/` folder. This document divides implementation into 4 phases: Foundation, Integration, SDK, and Refinement.
 
 ---
 
