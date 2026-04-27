@@ -194,12 +194,19 @@ export class PluginRegistry {
 
   /** Find command handler by name across all enabled plugins */
   public findCommand(
-    _name: string,
+    name: string,
   ): { pluginId: string; handler: (args: string[]) => Promise<void> } | undefined {
-    for (const [pluginId] of this.pluginContexts) {
+    for (const [pluginId, context] of this.pluginContexts) {
       if (!this.isEnabled(pluginId)) continue;
-      // Command registry would need to be checked - this is a placeholder
-      // Actual implementation would check the command registry
+
+      // Access commands through internal interface
+      const commands = context.commands as unknown as {
+        getHandler(name: string): ((args: string[]) => Promise<void>) | undefined;
+      };
+      const handler = commands.getHandler(name);
+      if (handler) {
+        return { pluginId, handler };
+      }
     }
     return undefined;
   }

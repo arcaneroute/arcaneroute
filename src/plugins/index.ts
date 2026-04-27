@@ -30,8 +30,6 @@ export type {
   PluginPermissionError,
   PluginRegistryData,
   PluginRegistryEntry,
-  PluginShell,
-  PluginShell,
   PluginSource,
   PluginTokenUsage,
   PluginVersionError,

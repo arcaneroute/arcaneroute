@@ -403,24 +403,7 @@ export class ChatCommand extends BaseCommand {
     input: string,
   ): { pluginId: string; handler: (args: string[]) => Promise<void> } | undefined {
     const registry = PluginRegistry.getInstance();
-    const normalizedInput = input.toLowerCase().trim();
-
-    for (const entry of registry.getEnabled()) {
-      const context = registry.getContext(entry.id);
-      if (!context) continue;
-
-      // Access the commands registry from plugin context
-      // Note: PluginCommandRegistryImpl has getHandler method
-      const handler = (
-        context.commands as {
-          getHandler(name: string): ((args: string[]) => Promise<void>) | undefined;
-        }
-      ).getHandler(normalizedInput);
-      if (handler) {
-        return { pluginId: entry.id, handler };
-      }
-    }
-    return undefined;
+    return registry.findCommand(input.toLowerCase().trim());
   }
 
   private printHelp(): void {

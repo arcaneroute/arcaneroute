@@ -92,11 +92,11 @@ export class PluginContextBuilder {
 
     const context: PluginContext = {
       ...baseContext,
-      ...(permissions.has('shell:exec') && { shell: new PluginShellImpl(manifest.id) }),
-      ...(permissions.has('network:outbound') && { network: new PluginNetworkImpl(manifest.id) }),
+      ...(permissions.has('shell:exec') && { shell: new PluginShellImpl() }),
+      ...(permissions.has('network:outbound') && { network: new PluginNetworkImpl() }),
       ...(permissions.has('llm:invoke') &&
         this.llmClient && {
-          llm: new PluginLLMImpl(manifest.id, this.llmClient, this.budgetLimiter),
+          llm: new PluginLLMImpl(this.llmClient, this.budgetLimiter),
         }),
     };
 
@@ -396,10 +396,6 @@ class PluginFileSystemImpl implements PluginFileSystem {
 // ============================================================================
 
 class PluginShellImpl implements PluginShell {
-  constructor(pluginId: string) {
-    this.pluginId = pluginId;
-  }
-
   public async exec(command: string): Promise<ShellResult> {
     try {
       const result = Bun.spawnSync({
@@ -428,10 +424,6 @@ class PluginShellImpl implements PluginShell {
 // ============================================================================
 
 class PluginNetworkImpl implements PluginNetwork {
-  constructor(pluginId: string) {
-    this.pluginId = pluginId;
-  }
-
   public async fetch(
     url: string,
     options?: { method?: string; headers?: Record<string, string>; body?: string },
@@ -481,13 +473,11 @@ class PluginLLMImpl implements PluginLLM {
   private readonly budgetLimiter: { recordUsage(tokens: PluginTokenUsage): void } | null;
 
   constructor(
-    pluginId: string,
     client: {
       send(prompt: string, system?: string): Promise<{ text: string; tokens: PluginTokenUsage }>;
     },
     budgetLimiter: { recordUsage(tokens: PluginTokenUsage): void } | null,
   ) {
-    this.pluginId = pluginId;
     this.client = client;
     this.budgetLimiter = budgetLimiter;
   }

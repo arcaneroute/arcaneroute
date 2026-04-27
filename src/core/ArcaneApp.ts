@@ -72,8 +72,20 @@ export class ArcaneApp {
       this.buildChatDeps(options);
 
     // Wire up plugin dependencies before loading plugins
-    this.pluginLoader.setBudgetLimiter(budgetLimiter);
-    this.pluginLoader.setLLMClient(client);
+    // Create adapters to match the expected interfaces
+    this.pluginLoader.setBudgetLimiter({
+      recordUsage: (tokens) => budgetLimiter.recordTurn(tokens),
+    });
+    this.pluginLoader.setLLMClient({
+      send: (prompt, system) =>
+        client
+          .sendMessage({
+            messages: [{ role: 'user' as const, content: prompt }],
+            effort: 'medium',
+            ...(system ? { systemPrompt: system } : {}),
+          })
+          .then((res) => ({ text: res.text, tokens: res.usage })),
+    });
 
     // Load all enabled plugins
     await this.pluginLoader.loadAll();
