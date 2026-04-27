@@ -1,9 +1,9 @@
 import { onMount, onCleanup, createSignal } from "solid-js";
 import { useRenderer, onResize } from "@opentui/solid";
-import { Banner } from "./Banner";
-import { ChatPanel } from "./ChatPanel/ChatPanel";
-import { Sidebar } from "./Sidebar/Sidebar";
-import { StatusBar } from "./StatusBar/StatusBar";
+import { Header } from "./Banner"; // Note: still imports from Banner.tsx
+import { ChatArea } from "./ChatArea";
+import { ChatInput } from "./ChatInput/ChatInput";
+import { ShortcutBar } from "./ShortcutBar";
 import { useAppEvents } from "../events/useAppEvents";
 
 interface ArcaneAppProps {
@@ -38,12 +38,17 @@ export function ArcaneApp({ onSend, onCancel, commandHistory = [] }: ArcaneAppPr
       flexDirection="column"
       padding={1}
     >
-      <Banner />
-      <box flexDirection="row" flexGrow={1} marginTop={1}>
-        <ChatPanel onSend={onSend} onCancel={onCancel} commandHistory={commandHistory} />
-        <Sidebar />
-      </box>
-      <StatusBar />
+      {/* Row 1: Header */}
+      <Header />
+
+      {/* Row 2: Chat Area (flexGrow to fill space) */}
+      <ChatArea />
+
+      {/* Row 3: Chat Input */}
+      <ChatInput commandHistory={commandHistory} />
+
+      {/* Row 4: Shortcut Bar */}
+      <ShortcutBar />
     </box>
   );
 }
