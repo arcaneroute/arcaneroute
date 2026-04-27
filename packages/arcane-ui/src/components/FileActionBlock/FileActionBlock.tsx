@@ -3,15 +3,18 @@ import { Box, Text } from 'ink';
 import type { FileActionBlockProps } from './FileActionBlockProps';
 
 export function FileActionBlock({ action }: FileActionBlockProps) {
-  const color =
-    action.type === 'CREATE' ? 'green' : action.type === 'MODIFY' ? 'yellow' : 'red';
+  const typeConfig = {
+    CREATE: { color: 'green', icon: '+', label: 'CREATE' },
+    MODIFY: { color: 'yellow', icon: '~', label: 'MODIFY' },
+    DELETE: { color: 'red', icon: '-', label: 'DELETE' },
+  }[action.type];
 
   return (
-    <Box>
-      <Text dimColor>[FILE_ACTION] </Text>
-      <Text color={color}>{action.type.padEnd(6)}</Text>
-      <Text> {action.path}</Text>
-      <Text dimColor> [/FILE_ACTION]</Text>
+    <Box alignItems="center" gap={1}>
+      <Text color={typeConfig.color} bold>{typeConfig.icon}</Text>
+      <Text color={typeConfig.color} bold>{typeConfig.label}</Text>
+      <Text dimColor>|</Text>
+      <Text color="white">{action.path}</Text>
     </Box>
   );
 }

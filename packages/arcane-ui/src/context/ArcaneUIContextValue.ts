@@ -8,6 +8,8 @@ import type {
 
 export type TUIMode = 'chat' | 'verify' | 'dream' | 'idle';
 
+export type AppStatus = 'idle' | 'running' | 'streaming' | 'verifying' | 'writing' | 'complete' | 'error';
+
 export interface DreamProgressState {
   phase: 'analyzing' | 'compressing' | 'writing' | 'complete';
   progress?: number;
@@ -18,6 +20,7 @@ export interface DreamProgressState {
 
 export interface ArcaneUIState {
   mode: TUIMode;
+  appStatus: AppStatus;
   budget: BudgetSummary;
   memory: MemoryStatus;
   swd: SWDStatus;
@@ -30,6 +33,7 @@ export interface ArcaneUIState {
 
 export interface ArcaneUIActions {
   setMode: (mode: TUIMode) => void;
+  setAppStatus: (status: AppStatus) => void;
   updateBudget: (budget: BudgetSummary) => void;
   updateMemory: (memory: MemoryStatus) => void;
   updateSWD: (swd: SWDStatus) => void;

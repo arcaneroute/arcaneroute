@@ -1,4 +1,4 @@
-import type { ArcaneUIState, DreamProgressState } from './ArcaneUIContextValue';
+import type { ArcaneUIState, AppStatus, DreamProgressState } from './ArcaneUIContextValue';
 import type { ChatMessage, BudgetSummary, MemoryStatus, SWDStatus, DriftReport } from '../types';
 
 function generateId(): string {
@@ -7,6 +7,7 @@ function generateId(): string {
 
 export type ArcaneUIAction =
   | { type: 'SET_MODE'; payload: ArcaneUIState['mode'] }
+  | { type: 'SET_APP_STATUS'; payload: AppStatus }
   | { type: 'UPDATE_BUDGET'; payload: BudgetSummary }
   | { type: 'UPDATE_MEMORY'; payload: MemoryStatus }
   | { type: 'UPDATE_SWD'; payload: SWDStatus }
@@ -22,6 +23,9 @@ export function arcaneUIReducer(state: ArcaneUIState, action: ArcaneUIAction): A
   switch (action.type) {
     case 'SET_MODE':
       return { ...state, mode: action.payload };
+
+    case 'SET_APP_STATUS':
+      return { ...state, appStatus: action.payload };
 
     case 'UPDATE_BUDGET':
       return { ...state, budget: action.payload };

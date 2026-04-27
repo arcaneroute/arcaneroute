@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box } from 'ink';
+import { Box, Text } from 'ink';
 import { BudgetPanel } from '../BudgetPanel/BudgetPanel';
 import { MemoryStatus } from '../MemoryStatus/MemoryStatus';
 import { SWDStatus } from '../SWDStatus/SWDStatus';
@@ -13,7 +13,21 @@ export interface SidebarProps {
 
 export function Sidebar({ budget, memory, swd }: SidebarProps) {
   return (
-    <Box flexDirection="column" width={30} marginLeft={1}>
+    <Box flexDirection="column" width={35}>
+      {/* Sidebar header */}
+      <Box
+        borderStyle="bold"
+        borderColor="magenta"
+        padding={1}
+        marginBottom={1}
+        justifyContent="center"
+        alignItems="center"
+      >
+        <Text bold color="magenta">STATUS</Text>
+        <Text dimColor> | </Text>
+        <Text dimColor>●</Text>
+      </Box>
+
       <BudgetPanel budget={budget} />
       <Box marginTop={1}>
         <MemoryStatus memory={memory} />

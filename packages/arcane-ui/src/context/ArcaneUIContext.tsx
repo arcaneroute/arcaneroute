@@ -1,10 +1,11 @@
 import React, { createContext, useReducer, useContext } from 'react';
 import { arcaneUIReducer } from './ArcaneUIReducer';
-import type { ArcaneUIState, ArcaneUIActions, ArcaneUIContextValue } from './ArcaneUIContextValue';
+import type { ArcaneUIState, ArcaneUIActions, ArcaneUIContextValue, AppStatus } from './ArcaneUIContextValue';
 import type { BudgetSummary, MemoryStatus, SWDStatus, ChatMessage, DriftReport } from '../types';
 
 const initialState: ArcaneUIState = {
   mode: 'idle',
+  appStatus: 'idle',
   budget: {
     totalTokens: 0,
     maxTokens: 100000,
@@ -38,6 +39,7 @@ export function ArcaneUIProvider({ children }: ArcaneUIProviderProps) {
 
   const actions: ArcaneUIActions = {
     setMode: (mode) => dispatch({ type: 'SET_MODE', payload: mode }),
+    setAppStatus: (status: AppStatus) => dispatch({ type: 'SET_APP_STATUS', payload: status }),
     updateBudget: (budget) => dispatch({ type: 'UPDATE_BUDGET', payload: budget }),
     updateMemory: (memory) => dispatch({ type: 'UPDATE_MEMORY', payload: memory }),
     updateSWD: (swd) => dispatch({ type: 'UPDATE_SWD', payload: swd }),

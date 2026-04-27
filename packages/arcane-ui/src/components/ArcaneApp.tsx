@@ -7,7 +7,7 @@ import { StatusBar } from './StatusBar';
 import type { ArcaneAppProps } from './ArcaneAppProps';
 
 function ArcaneAppInner({ config }: { config: ArcaneAppProps['config'] }) {
-  const { mode } = useArcanUIContext();
+  const { mode, appStatus } = useArcanUIContext();
 
   // Get config values
   const provider = config.getProvider();
@@ -19,18 +19,21 @@ function ArcaneAppInner({ config }: { config: ArcaneAppProps['config'] }) {
   }, []);
 
   return (
-    <Box flexDirection="column" flexGrow={1}>
+    <Box flexDirection="column" flexGrow={1} padding={1}>
       <Banner
         version="0.1.0"
         provider={provider}
         model={model}
         effort={effort}
         swdActive={true}
+        status={appStatus}
       />
-      <Box flexGrow={1} flexDirection="column">
+      <Box flexGrow={1} marginTop={1}>
         <Layout />
       </Box>
-      <StatusBar />
+      <Box marginTop={1}>
+        <StatusBar />
+      </Box>
     </Box>
   );
 }
