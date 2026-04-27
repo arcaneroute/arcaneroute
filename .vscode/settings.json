@@ -1,0 +1,7 @@
+{
+    "editor.codeActionsOnSave": {
+        "source.biome": "explicit",
+        "source.sortImports": "explicit",
+        "source.sort.json": "explicit"
+    }
+}
