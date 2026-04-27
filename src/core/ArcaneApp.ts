@@ -16,6 +16,8 @@ import { IgnoreParser } from '../filesystem/IgnoreParser.ts';
 import { SWDEngine } from '../filesystem/SWDEngine.ts';
 import { MemoryCompressor } from '../memory/MemoryCompressor.ts';
 import { MemoryManager } from '../memory/MemoryManager.ts';
+import { PluginLoader } from '../plugins/PluginLoader.ts';
+import { PluginRegistry } from '../plugins/PluginRegistry.ts';
 import type { ChatOptions, DreamOptions, VerifyOptions } from '../types/index.ts';
 import { ConfigManager } from './ConfigManager.ts';
 import { EventBus } from './EventBus.ts';
@@ -30,11 +32,14 @@ export class ArcaneApp {
   private readonly config: ConfigManager;
   private readonly eventBus: EventBus;
   private readonly renderer: Renderer;
+  private readonly pluginLoader: PluginLoader;
 
   constructor() {
     this.config = ConfigManager.getInstance();
     this.eventBus = EventBus.getInstance();
     this.renderer = new Renderer();
+    const registry = PluginRegistry.getInstance();
+    this.pluginLoader = new PluginLoader(registry, this.eventBus);
   }
 
   /**
@@ -65,6 +70,13 @@ export class ArcaneApp {
 
     const { client, swdEngine, memoryManager, budgetLimiter, conversationManager } =
       this.buildChatDeps(options);
+
+    // Wire up plugin dependencies before loading plugins
+    this.pluginLoader.setBudgetLimiter(budgetLimiter);
+    this.pluginLoader.setLLMClient(client);
+
+    // Load all enabled plugins
+    await this.pluginLoader.loadAll();
 
     const command = new ChatCommand(
       this.config,
@@ -138,10 +150,11 @@ export class ArcaneApp {
   }
 
   /**
-   * Graceful shutdown — removes all EventBus listeners.
+   * Graceful shutdown — removes all EventBus listeners and unloads plugins.
    * Always call this in the CLI action's `finally` block.
    */
   public async shutdown(): Promise<void> {
+    await this.pluginLoader.unloadAll();
     this.eventBus.removeAllArcaneListeners();
   }
 

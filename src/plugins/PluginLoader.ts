@@ -6,7 +6,12 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { EventBus } from '../core/EventBus.ts';
-import type { ArcanePlugin, PluginContext, PluginManifest } from '../types/plugin.ts';
+import type {
+  ArcanePlugin,
+  PluginContext,
+  PluginManifest,
+  PluginTokenUsage,
+} from '../types/plugin.ts';
 import { PluginLoadError, PluginManifestError } from '../types/plugin.ts';
 import { PluginContextBuilder } from './PluginContext.ts';
 import type { PluginRegistry } from './PluginRegistry.ts';
@@ -22,6 +27,10 @@ export class PluginLoader {
   private readonly eventBus: EventBus;
   private readonly arcaneVersion: string;
   private readonly projectRoot: string;
+  private budgetLimiter: { recordUsage(tokens: PluginTokenUsage): void } | null = null;
+  private llmClient: {
+    send(prompt: string, system?: string): Promise<{ text: string; tokens: PluginTokenUsage }>;
+  } | null = null;
 
   constructor(
     registry: PluginRegistry,
@@ -34,6 +43,22 @@ export class PluginLoader {
     this.arcaneVersion = arcaneVersion;
     this.projectRoot = projectRoot;
     this.validator = new PluginValidator(arcaneVersion);
+  }
+
+  /**
+   * Set the budget limiter for tracking plugin LLM usage.
+   */
+  public setBudgetLimiter(budgetLimiter: { recordUsage(tokens: PluginTokenUsage): void }): void {
+    this.budgetLimiter = budgetLimiter;
+  }
+
+  /**
+   * Set the LLM client for plugins with llm:invoke permission.
+   */
+  public setLLMClient(client: {
+    send(prompt: string, system?: string): Promise<{ text: string; tokens: PluginTokenUsage }>;
+  }): void {
+    this.llmClient = client;
   }
 
   /**
@@ -187,6 +212,13 @@ export class PluginLoader {
       .withArcaneVersion(this.arcaneVersion)
       .withProjectRoot(this.projectRoot)
       .withEventBus(this.eventBus);
+
+    if (this.budgetLimiter) {
+      builder.withBudgetLimiter(this.budgetLimiter);
+    }
+    if (this.llmClient) {
+      builder.withLLMClient(this.llmClient);
+    }
 
     return builder.build();
   }

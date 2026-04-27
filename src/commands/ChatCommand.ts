@@ -14,6 +14,7 @@ import type { EventBus } from '../core/EventBus.ts';
 import type { SWDEngine } from '../filesystem/SWDEngine.ts';
 import { MemoryEntry } from '../memory/MemoryEntry.ts';
 import type { MemoryManager } from '../memory/MemoryManager.ts';
+import { PluginRegistry } from '../plugins/PluginRegistry.ts';
 import type { ChatOptions, VerificationResult } from '../types/index.ts';
 import { BaseCommand } from './BaseCommand.ts';
 
@@ -381,11 +382,45 @@ export class ChatCommand extends BaseCommand {
         this.printHelp();
         return true;
 
-      default:
+      default: {
+        // Check plugin commands
+        const pluginCommand = this.findPluginCommand(input);
+        if (pluginCommand) {
+          await pluginCommand.handler(input.split(' ').slice(1));
+          return true;
+        }
         this.renderer.warn(`Unknown slash command: ${input}`);
         this.renderer.info('Type /help to see available commands.');
         return true;
+      }
     }
+  }
+
+  /**
+   * Find a command handler from enabled plugins.
+   */
+  private findPluginCommand(
+    input: string,
+  ): { pluginId: string; handler: (args: string[]) => Promise<void> } | undefined {
+    const registry = PluginRegistry.getInstance();
+    const normalizedInput = input.toLowerCase().trim();
+
+    for (const entry of registry.getEnabled()) {
+      const context = registry.getContext(entry.id);
+      if (!context) continue;
+
+      // Access the commands registry from plugin context
+      // Note: PluginCommandRegistryImpl has getHandler method
+      const handler = (
+        context.commands as {
+          getHandler(name: string): ((args: string[]) => Promise<void>) | undefined;
+        }
+      ).getHandler(normalizedInput);
+      if (handler) {
+        return { pluginId: entry.id, handler };
+      }
+    }
+    return undefined;
   }
 
   private printHelp(): void {

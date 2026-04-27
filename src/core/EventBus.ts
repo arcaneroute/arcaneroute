@@ -20,6 +20,8 @@ export interface ArcaneEventPayloads {
   'budget:warning': { tokensPercent: number; turnsPercent: number };
   'budget:exceeded': { reason: string };
   'chat:turn_complete': { turn: number; tokensUsed: number };
+  /** Plugin custom events with namespace plugin:{pluginId}:{action} */
+  [key: `plugin:${string}`]: unknown;
 }
 
 /**

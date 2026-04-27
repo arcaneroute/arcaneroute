@@ -152,7 +152,8 @@ export type ArcaneEvent =
   | 'memory:compressed'
   | 'budget:warning'
   | 'budget:exceeded'
-  | 'chat:turn_complete';
+  | 'chat:turn_complete'
+  | `plugin:${string}`;
 
 // Pricing Types
 export interface ProviderPricing {

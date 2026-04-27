@@ -396,8 +396,6 @@ class PluginFileSystemImpl implements PluginFileSystem {
 // ============================================================================
 
 class PluginShellImpl implements PluginShell {
-  private readonly pluginId: string;
-  
   constructor(pluginId: string) {
     this.pluginId = pluginId;
   }
@@ -430,8 +428,6 @@ class PluginShellImpl implements PluginShell {
 // ============================================================================
 
 class PluginNetworkImpl implements PluginNetwork {
-  private readonly pluginId: string;
-  
   constructor(pluginId: string) {
     this.pluginId = pluginId;
   }
@@ -483,7 +479,6 @@ class PluginLLMImpl implements PluginLLM {
     send(prompt: string, system?: string): Promise<{ text: string; tokens: PluginTokenUsage }>;
   };
   private readonly budgetLimiter: { recordUsage(tokens: PluginTokenUsage): void } | null;
-  private readonly pluginId: string;
 
   constructor(
     pluginId: string,
