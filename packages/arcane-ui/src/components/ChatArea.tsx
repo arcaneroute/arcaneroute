@@ -1,13 +1,8 @@
-import { For, Show, createSignal, onMount } from "solid-js";
+import { For, Show } from "solid-js";
 import { useAppEvents } from "../events/useAppEvents";
 import type { ChatMessage } from "../types";
 
-interface ChatAreaProps {
-  onSend?: (text: string) => void;
-  onCancel?: () => void;
-}
-
-export function ChatArea({ onSend, onCancel }: ChatAreaProps) {
+export function ChatArea() {
   const { state } = useAppEvents();
   const messages = () => state().messages;
   const streamingText = () => state().streamingText;
