@@ -2,6 +2,9 @@
  * Factories - Export factory functions
  */
 
+import { logger } from '@arcane/logger';
+export { logger };
+
 export { createAgent } from './createAgent';
 export { createCodeReviewAgent } from './agents/codeReviewAgent';
 export { createTaskAutomationAgent } from './agents/taskAutomationAgent';

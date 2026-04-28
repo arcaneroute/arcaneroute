@@ -2,6 +2,7 @@
  * MemoryStore - Long-term memory context persistence
  */
 
+import { logger } from '@arcane/logger';
 import type { Message } from '../types';
 import { mkdir, readFile, writeFile } from 'fs/promises';
 
@@ -27,9 +28,11 @@ export class MemoryStore {
     this.storagePath = config.storagePath;
     this.maxEntries = config.maxEntries || 1000;
     this.memoryFile = `${this.storagePath}/memory.json`;
+    logger.debug({ storagePath: this.storagePath, maxEntries: this.maxEntries }, 'MemoryStore initialized');
   }
 
   async add(content: string, context: string, tags: string[] = []): Promise<MemoryEntry> {
+    logger.debug({ contentLength: content.length, context, tags }, 'Adding memory entry');
     const entry: MemoryEntry = {
       id: crypto.randomUUID(),
       content,
@@ -46,28 +49,35 @@ export class MemoryStore {
     }
 
     await this.saveAll(memories);
+    logger.info({ entryId: entry.id, totalEntries: memories.length }, 'Memory entry added');
     return entry;
   }
 
   async getAll(): Promise<MemoryEntry[]> {
     try {
       const content = await readFile(this.memoryFile, 'utf-8');
-      return JSON.parse(content);
+      const memories = JSON.parse(content);
+      logger.debug({ count: memories.length }, 'Memory entries loaded');
+      return memories;
     } catch {
+      logger.debug('No memory file found, returning empty array');
       return [];
     }
   }
 
   async search(query: string): Promise<MemoryEntry[]> {
+    logger.debug({ query }, 'Searching memory');
     const memories = await this.getAll();
     const queryLower = query.toLowerCase();
 
-    return memories.filter(
+    const results = memories.filter(
       (m) =>
         m.content.toLowerCase().includes(queryLower) ||
         m.context.toLowerCase().includes(queryLower) ||
         m.tags.some((t) => t.toLowerCase().includes(queryLower))
     );
+    logger.debug({ query, resultsCount: results.length }, 'Memory search completed');
+    return results;
   }
 
   async getRecent(limit: number = 10): Promise<MemoryEntry[]> {
@@ -84,14 +94,19 @@ export class MemoryStore {
     const memories = await this.getAll();
     const index = memories.findIndex((m) => m.id === id);
 
-    if (index === -1) return false;
+    if (index === -1) {
+      logger.warn({ id }, 'Memory entry not found for deletion');
+      return false;
+    }
 
     memories.splice(index, 1);
     await this.saveAll(memories);
+    logger.info({ id, remainingEntries: memories.length }, 'Memory entry deleted');
     return true;
   }
 
   async clear(): Promise<void> {
+    logger.info('Clearing all memory entries');
     await this.saveAll([]);
   }
 
@@ -99,21 +114,25 @@ export class MemoryStore {
     const recent = await this.getRecent(limit);
     if (recent.length === 0) return '';
 
-    return recent
+    const context = recent
       .map((m) => `[${new Date(m.timestamp).toISOString()}] ${m.content}`)
       .join('\n');
+    logger.debug({ limit, entries: recent.length, contextLength: context.length }, 'Memory context string generated');
+    return context;
   }
 
   private async saveAll(memories: MemoryEntry[]): Promise<void> {
     await this.ensureDir(this.storagePath);
     const content = JSON.stringify(memories, null, 2);
     await writeFile(this.memoryFile, content);
+    logger.debug({ entries: memories.length }, 'Memory saved to disk');
   }
 
   private async ensureDir(path: string): Promise<void> {
     try {
       await mkdir(path, { recursive: true });
-    } catch {
+    } catch (error) {
+      logger.error({ path, error: String(error) }, 'Failed to create memory directory');
     }
   }
 }

@@ -2,6 +2,7 @@
  * ArcaneAgentFactory - Main factory class
  */
 
+import { logger } from '@arcane/logger';
 import type { AgentInstance, Tool, HITLConfig, StreamEvent, AgentState, ApprovalRequest, ApprovalResponse, ApprovalHandler, EventHandler } from '../types';
 import { AgentRegistry } from '../core/AgentRegistry';
 import { ChannelBus } from '../core/ChannelBus';

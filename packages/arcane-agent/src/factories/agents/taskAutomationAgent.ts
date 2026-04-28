@@ -2,6 +2,7 @@
  * Task Automation Agent Factory
  */
 
+import { logger } from '@arcane/logger';
 import type { AgentInstance, Tool } from '../../types';
 import { standardTools } from '../../tools';
 import { createAgent } from '../createAgent';

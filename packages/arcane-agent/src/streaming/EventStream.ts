@@ -2,6 +2,7 @@
  * EventStream - Structured JSON event streaming
  */
 
+import { logger } from '@arcane/logger';
 import type { StreamEvent, StreamEventType } from '../types';
 
 export type EventListener = (event: StreamEvent) => void | Promise<void>;
@@ -13,6 +14,7 @@ export class EventStream {
 
   constructor(maxHistorySize: number = 100) {
     this.maxHistorySize = maxHistorySize;
+    logger.debug({ maxHistorySize }, 'EventStream initialized');
   }
 
   on(eventType: StreamEventType | '*', listener: EventListener): () => void {
@@ -20,9 +22,11 @@ export class EventStream {
       this.listeners.set(eventType, new Set());
     }
     this.listeners.get(eventType)!.add(listener);
+    logger.debug({ eventType, listenersCount: this.listeners.get(eventType)!.size }, 'Listener registered');
 
     return () => {
       this.listeners.get(eventType)?.delete(listener);
+      logger.debug({ eventType }, 'Listener unregistered');
     };
   }
 
@@ -31,6 +35,7 @@ export class EventStream {
   }
 
   emit(event: StreamEvent): void {
+    logger.debug({ eventType: event.type }, 'Emitting event');
     this.addToHistory(event);
 
     const listeners = this.listeners.get('*');
@@ -40,11 +45,11 @@ export class EventStream {
           const result = listener(event);
           if (result instanceof Promise) {
             result.catch((err) =>
-              console.error('Event listener error:', err)
+              logger.error({ error: String(err) }, 'Event listener error')
             );
           }
         } catch (err) {
-          console.error('Event listener error:', err);
+          logger.error({ error: String(err) }, 'Event listener error');
         }
       }
     }
@@ -56,11 +61,11 @@ export class EventStream {
           const result = listener(event);
           if (result instanceof Promise) {
             result.catch((err) =>
-              console.error('Event listener error:', err)
+              logger.error({ error: String(err) }, 'Event listener error')
             );
           }
         } catch (err) {
-          console.error('Event listener error:', err);
+          logger.error({ error: String(err) }, 'Event listener error');
         }
       }
     }

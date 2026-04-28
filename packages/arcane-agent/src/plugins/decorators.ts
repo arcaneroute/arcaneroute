@@ -2,12 +2,14 @@
  * Plugin decorators - @registerAgent dan @registerTool decorators
  */
 
+import { logger } from '@arcane/logger';
 import type { AgentDefinition, Tool, ToolFunction, AgentState, AgentNodeFunction } from '../types';
 import { AgentRegistry } from '../core/AgentRegistry';
 
 let globalRegistry: AgentRegistry | null = null;
 
 export const setGlobalRegistry = (registry: AgentRegistry): void => {
+  logger.debug('Setting global registry');
   globalRegistry = registry;
 };
 
@@ -25,7 +27,7 @@ function registerAgent(config: {
     Target: T
   ): T {
     if (!globalRegistry) {
-      console.warn('@registerAgent: No global registry set. Agent will not be registered.');
+      logger.warn('No global registry set. Agent will not be registered.');
       return Target;
     }
 
@@ -61,7 +63,7 @@ function registerTool(config: { name: string; description: string }) {
     };
 
     if (!globalRegistry) {
-      console.warn('@registerTool: No global registry set. Tool will not be registered.');
+      logger.warn('No global registry set. Tool will not be registered.');
       return;
     }
 

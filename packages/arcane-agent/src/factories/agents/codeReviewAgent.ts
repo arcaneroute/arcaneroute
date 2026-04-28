@@ -2,6 +2,7 @@
  * Code Review Agent Factory
  */
 
+import { logger } from '@arcane/logger';
 import type { AgentInstance, Tool } from '../../types';
 import { gitTools } from '../../tools/GitTools';
 import { createAgent } from '../createAgent';

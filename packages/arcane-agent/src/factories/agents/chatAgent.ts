@@ -2,6 +2,7 @@
  * Chat Agent Factory
  */
 
+import { logger } from '@arcane/logger';
 import type { AgentInstance, Tool } from '../../types';
 import { createAgent } from '../createAgent';
 

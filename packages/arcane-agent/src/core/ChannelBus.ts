@@ -3,6 +3,7 @@
  * Agents berkomunikasi via named channels/topics
  */
 
+import { logger } from '@arcane/logger';
 import type { AgentEvent, EventHandler } from '../types';
 
 export class ChannelBus {
@@ -12,33 +13,41 @@ export class ChannelBus {
 
   constructor(maxHistorySize: number = 100) {
     this.maxHistorySize = maxHistorySize;
+    logger.debug({ maxHistorySize }, 'ChannelBus initialized');
   }
 
   subscribe(channel: string, handler: EventHandler): void {
     if (!this.channels.has(channel)) {
       this.channels.set(channel, new Set());
+      logger.debug({ channel }, 'New channel created');
     }
     this.channels.get(channel)!.add(handler);
+    logger.debug({ channel, handlersCount: this.channels.get(channel)!.size }, 'Handler subscribed');
   }
 
   unsubscribe(channel: string, handler: EventHandler): void {
     this.channels.get(channel)?.delete(handler);
     if (this.channels.get(channel)?.size === 0) {
       this.channels.delete(channel);
+      logger.debug({ channel }, 'Channel removed (no handlers)');
     }
+    logger.debug({ channel, handlersCount: this.channels.get(channel)?.size ?? 0 }, 'Handler unsubscribed');
   }
 
   publish(channel: string, event: AgentEvent): void {
+    logger.debug({ channel, eventType: event.type }, 'Publishing event to channel');
     const handlers = this.channels.get(channel);
     if (handlers) {
       for (const handler of handlers) {
         const result = handler(event);
         if (result instanceof Promise) {
           result.catch((err) => {
-            console.error(`Error in channel handler for '${channel}':`, err);
+            logger.error({ channel, error: String(err) }, `Error in channel handler for '${channel}'`);
           });
         }
       }
+    } else {
+      logger.warn({ channel }, 'No handlers subscribed to channel');
     }
 
     this.addToHistory(channel, event);

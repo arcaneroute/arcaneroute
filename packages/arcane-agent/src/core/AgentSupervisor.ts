@@ -3,6 +3,7 @@
  * Central brain yang orchestrate semua sub-agents
  */
 
+import { logger } from '@arcane/logger';
 import type {
   AgentDefinition,
   AgentState,
@@ -53,6 +54,7 @@ export class AgentSupervisor {
 
   async route(task: string): Promise<string[]> {
     const agentsList = this.registry.getAvailableAgents().join('\n');
+    logger.debug({ task, agentsCount: this.registry.size() }, 'Routing task to agents');
 
     const prompt = await this.prompts.render('router', {
       task,
@@ -66,15 +68,19 @@ export class AgentSupervisor {
       .map((s) => s.trim())
       .filter((s) => this.registry.has(s));
 
-    return agentNames.length > 0 ? agentNames : ['ChatAgent'];
+    const result = agentNames.length > 0 ? agentNames : ['ChatAgent'];
+    logger.debug({ agents: result }, 'Routing decision');
+    return result;
   }
 
   async orchestrate(task: string): Promise<AgentResult> {
+    logger.info({ task }, 'Supervisor orchestrating task');
     const agentNames = await this.route(task);
     const primaryAgentName = agentNames[0];
     const agent = this.registry.get(primaryAgentName);
 
     if (!agent) {
+      logger.error({ agent: primaryAgentName }, 'Agent not found');
       return {
         success: false,
         output: { error: `Agent not found: ${primaryAgentName}` },
@@ -85,6 +91,7 @@ export class AgentSupervisor {
 
     const state = this.createInitialState(task);
     state.currentAgent = primaryAgentName;
+    logger.info({ agent: primaryAgentName, allAgents: agentNames }, 'Executing agent');
 
     if (this.hitlManager.isEnabled()) {
       return await this.executeWithHITL(agent, state, agentNames);
@@ -127,14 +134,18 @@ export class AgentSupervisor {
     state: AgentState
   ): Promise<AgentResult> {
     try {
+      logger.debug({ agent: agent.name }, 'Executing agent node');
       const resultState = await agent.node(state);
+      logger.debug({ agent: agent.name }, 'Agent node completed');
 
       // If LLM client is available and this is ChatAgent, generate response via LLM
       if (this.llmClient) {
+        logger.debug({ agent: agent.name }, 'Generating LLM response');
         const chatPrompt = `You are a helpful AI assistant. Answer the following question or request:\n\n${state.task}`;
         const llmResponse = await this.llmClient.complete([
           { role: 'user', content: chatPrompt },
         ]);
+        logger.debug({ agent: agent.name, responseLength: llmResponse.length }, 'LLM response received');
 
         resultState.messages.push({
           role: 'assistant',
@@ -143,6 +154,7 @@ export class AgentSupervisor {
         resultState.results['response'] = llmResponse;
       }
 
+      logger.info({ agent: agent.name, success: true }, 'Agent execution completed');
       return {
         success: true,
         output: resultState.results,
@@ -150,7 +162,7 @@ export class AgentSupervisor {
         checkpoints: [],
       };
     } catch (error) {
-      console.warn(`Agent ${agent.name} failed:`, error);
+      logger.error({ agent: agent.name, error: String(error) }, 'Agent execution failed');
 
       state.errors.push({
         node: agent.name,
@@ -202,7 +214,7 @@ Tools available: ${agent.tools.map((t) => t.name).join(', ')}`;
       const response = await this.llmClient.complete(messages);
       return response;
     } catch (error) {
-      console.warn('LLM call failed:', error);
+      logger.warn({ error: String(error) }, 'LLM call failed');
       return 'ChatAgent';
     }
   }

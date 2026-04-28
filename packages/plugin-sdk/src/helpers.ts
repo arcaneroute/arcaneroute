@@ -3,6 +3,7 @@
  * Helper utilities for plugin developers
  */
 
+import { logger } from '@arcane/logger';
 import type { ArcanePlugin, PluginContext } from './types.js';
 
 /**
@@ -42,25 +43,15 @@ export function definePlugin(plugin: ArcanePlugin): ArcanePlugin {
  */
 export function createLogger(
   prefix: string,
-  logger?: Pick<PluginContext['logger'], 'info' | 'warn' | 'error' | 'debug'>,
+  parentLogger?: Pick<PluginContext['logger'], 'info' | 'warn' | 'error' | 'debug'>,
 ): PluginContext['logger'] {
-  const impl = logger ?? {
-    info: (msg: string) => console.log(`[${prefix}] ${msg}`),
-    warn: (msg: string) => console.warn(`[${prefix}] ${msg}`),
-    error: (msg: string, err?: Error) => {
-      console.error(`[${prefix}] ${msg}`);
-      if (err?.stack) console.error(err.stack);
-    },
-    debug: (msg: string) => {
-      if (process.env.DEBUG === 'true') console.log(`[${prefix}] ${msg}`);
-    },
-  };
+  const parent = parentLogger ?? logger;
 
   return {
-    info: (msg: string) => impl.info(`[${prefix}] ${msg}`),
-    warn: (msg: string) => impl.warn(`[${prefix}] ${msg}`),
-    error: (msg: string, err?: Error) => impl.error(`[${prefix}] ${msg}`, err),
-    debug: (msg: string) => impl.debug(`[${prefix}] ${msg}`),
+    info: (msg: string) => parent.info({ prefix }, msg),
+    warn: (msg: string) => parent.warn({ prefix }, msg),
+    error: (msg: string, err?: Error) => parent.error({ prefix, err: err?.message, stack: err?.stack }, msg),
+    debug: (msg: string) => parent.debug({ prefix }, msg),
   };
 }
 

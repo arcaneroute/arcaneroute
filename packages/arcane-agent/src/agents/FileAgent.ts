@@ -3,6 +3,7 @@
  * Handle: read, write, edit, glob, ls, mkdir, rm files
  */
 
+import { logger } from '@arcane/logger';
 import { Glob } from 'bun';
 import { readdir } from 'fs/promises';
 import type { AgentDefinition, AgentState } from '../types';
@@ -71,22 +72,30 @@ export const FileAgent: AgentDefinition = {
   ],
   node: async (state: AgentState): Promise<AgentState> => {
     const task = state.task.toLowerCase();
+    logger.debug({ task: state.task }, 'FileAgent processing task');
 
     if (task.includes('read') || task.includes('show') || task.includes('view')) {
       state.results['action'] = 'read_file';
+      logger.debug({ action: 'read_file' }, 'FileAgent routing to read_file');
     } else if (task.includes('write') || task.includes('create') || task.includes('save')) {
       state.results['action'] = 'write_file';
+      logger.debug({ action: 'write_file' }, 'FileAgent routing to write_file');
     } else if (task.includes('glob') || task.includes('find') || task.includes('search')) {
       state.results['action'] = 'glob';
+      logger.debug({ action: 'glob' }, 'FileAgent routing to glob');
     } else if (task.includes('list') || task.includes('ls')) {
       state.results['action'] = 'ls';
+      logger.debug({ action: 'ls' }, 'FileAgent routing to ls');
     } else if (task.includes('delete') || task.includes('remove')) {
       state.results['action'] = 'rm';
+      logger.debug({ action: 'rm' }, 'FileAgent routing to rm');
     } else {
       state.results['action'] = 'read_file';
+      logger.debug({ action: 'read_file' }, 'FileAgent routing to read_file (default)');
     }
 
     state.currentAgent = 'FileAgent';
+    logger.info({ agent: 'FileAgent', action: state.results['action'] }, 'FileAgent completed');
     return state;
   },
 };

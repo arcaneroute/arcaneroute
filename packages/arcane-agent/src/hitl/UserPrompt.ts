@@ -2,6 +2,7 @@
  * UserPrompt - Format prompts untuk user consumption
  */
 
+import { logger } from '@arcane/logger';
 import type { ApprovalRequest } from '../types';
 
 export interface UserPromptOptions {
@@ -15,6 +16,7 @@ export class UserPrompt {
     request: ApprovalRequest,
     options: UserPromptOptions = {}
   ): string {
+    logger.debug({ agent: request.agent, action: request.action, requestId: request.id }, 'Formatting user prompt');
     const { showContext = true, showTimestamp = true, colorize = false } = options;
 
     const lines: string[] = [];
@@ -51,10 +53,14 @@ export class UserPrompt {
     lines.push('  • "m <description>" - modify and proceed');
     lines.push(divider);
 
-    return lines.join('\n');
+    const formatted = lines.join('\n');
+    logger.debug({ length: formatted.length }, 'User prompt formatted');
+    return formatted;
   }
 
   formatMinimal(request: ApprovalRequest): string {
-    return `[${request.agent}] ${request.action}: ${request.description.slice(0, 100)}`;
+    const minimal = `[${request.agent}] ${request.action}: ${request.description.slice(0, 100)}`;
+    logger.debug({ minimal }, 'Formatted minimal prompt');
+    return minimal;
   }
 }

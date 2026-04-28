@@ -3,6 +3,7 @@
  * Handle: Q&A, explanations, context-aware responses
  */
 
+import { logger } from '@arcane/logger';
 import type { AgentDefinition, AgentState, Message } from '../types';
 
 export const ChatAgent: AgentDefinition = {
@@ -46,6 +47,7 @@ export const ChatAgent: AgentDefinition = {
   ],
   node: async (state: AgentState): Promise<AgentState> => {
     const task = state.task.toLowerCase();
+    logger.debug({ task: state.task }, 'ChatAgent processing task');
 
     if (
       task.includes('what') ||
@@ -54,15 +56,20 @@ export const ChatAgent: AgentDefinition = {
       task.includes('explain')
     ) {
       state.results['action'] = 'explain';
+      logger.debug({ action: 'explain' }, 'ChatAgent routing to explain');
     } else if (task.includes('find') || task.includes('search') || task.includes('look for')) {
       state.results['action'] = 'search';
+      logger.debug({ action: 'search' }, 'ChatAgent routing to search');
     } else if (task.includes('help') || task.includes('assist')) {
       state.results['action'] = 'assist';
+      logger.debug({ action: 'assist' }, 'ChatAgent routing to assist');
     } else {
       state.results['action'] = 'respond';
+      logger.debug({ action: 'respond' }, 'ChatAgent routing to respond');
     }
 
     state.currentAgent = 'ChatAgent';
+    logger.info({ agent: 'ChatAgent', action: state.results['action'] }, 'ChatAgent completed');
 
     const responseMessage: Message = {
       role: 'assistant',

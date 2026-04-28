@@ -2,6 +2,7 @@
  * Formatters - Event formatters untuk output
  */
 
+import { logger } from '@arcane/logger';
 import type { StreamEvent } from '../types';
 
 export interface FormatterOptions {

@@ -2,11 +2,14 @@
  * WebTools - Tool definitions untuk web operations
  */
 
+import { logger } from '@arcane/logger';
 import type { Tool, ToolFunction } from '../types';
 
 const webSearch: ToolFunction = async (input: unknown) => {
   const { query, limit = 10 } = input as { query: string; limit?: number };
+  logger.debug({ tool: 'web_search', query, limit }, 'Executing web_search');
 
+  logger.info({ tool: 'web_search', query }, 'Web search placeholder - requires external API');
   return {
     success: true,
     message: `Web search for: ${query}`,
@@ -24,6 +27,7 @@ const fetchUrl: ToolFunction = async (input: unknown) => {
     headers?: Record<string, string>;
   };
 
+  logger.debug({ tool: 'fetch_url', url, method }, 'Executing fetch_url');
   try {
     const response = await fetch(url, {
       method,
@@ -31,6 +35,7 @@ const fetchUrl: ToolFunction = async (input: unknown) => {
     });
 
     const text = await response.text();
+    logger.info({ tool: 'fetch_url', url, status: response.status, success: response.ok }, 'fetch_url completed');
     return {
       success: response.ok,
       status: response.status,
@@ -40,6 +45,7 @@ const fetchUrl: ToolFunction = async (input: unknown) => {
       url,
     };
   } catch (error) {
+    logger.error({ tool: 'fetch_url', url, error: String(error) }, 'fetch_url failed');
     return { success: false, error: String(error), url };
   }
 };
@@ -47,6 +53,7 @@ const fetchUrl: ToolFunction = async (input: unknown) => {
 const getJson: ToolFunction = async (input: unknown) => {
   const { url, headers } = input as { url: string; headers?: Record<string, string> };
 
+  logger.debug({ tool: 'get_json', url }, 'Executing get_json');
   try {
     const response = await fetch(url, {
       method: 'GET',
@@ -57,6 +64,7 @@ const getJson: ToolFunction = async (input: unknown) => {
     });
 
     const json = await response.json();
+    logger.info({ tool: 'get_json', url, status: response.status, success: response.ok }, 'get_json completed');
     return {
       success: response.ok,
       status: response.status,
@@ -64,6 +72,7 @@ const getJson: ToolFunction = async (input: unknown) => {
       url,
     };
   } catch (error) {
+    logger.error({ tool: 'get_json', url, error: String(error) }, 'get_json failed');
     return { success: false, error: String(error), url };
   }
 };
@@ -75,6 +84,7 @@ const postJson: ToolFunction = async (input: unknown) => {
     headers?: Record<string, string>;
   };
 
+  logger.debug({ tool: 'post_json', url }, 'Executing post_json');
   try {
     const response = await fetch(url, {
       method: 'POST',
@@ -86,6 +96,7 @@ const postJson: ToolFunction = async (input: unknown) => {
     });
 
     const json = await response.json();
+    logger.info({ tool: 'post_json', url, status: response.status, success: response.ok }, 'post_json completed');
     return {
       success: response.ok,
       status: response.status,
@@ -93,6 +104,7 @@ const postJson: ToolFunction = async (input: unknown) => {
       url,
     };
   } catch (error) {
+    logger.error({ tool: 'post_json', url, error: String(error) }, 'post_json failed');
     return { success: false, error: String(error), url };
   }
 };

@@ -2,6 +2,7 @@
  * Multi-Agent Orchestration Factory
  */
 
+import { logger } from '@arcane/logger';
 import type { AgentInstance } from '../../types';
 import { createAgent } from '../createAgent';
 

@@ -3,6 +3,7 @@
  * Mendukung core agents dan plugin agents
  */
 
+import { logger } from '@arcane/logger';
 import type {
   AgentDefinition,
   AgentRegistry as AgentRegistryInterface,
@@ -14,16 +15,19 @@ export class AgentRegistry implements AgentRegistryInterface {
 
   register(agent: AgentDefinition): void {
     if (this.agents.has(agent.name)) {
-      console.warn(`Agent '${agent.name}' is already registered. Overwriting.`);
+      logger.warn({ agent: agent.name }, `Agent '${agent.name}' is already registered. Overwriting.`);
+    } else {
+      logger.info({ agent: agent.name, toolsCount: agent.tools.length }, 'Registering new agent');
     }
     this.agents.set(agent.name, agent);
   }
 
   unregister(name: string): void {
     if (!this.agents.has(name)) {
-      console.warn(`Agent '${name}' is not registered.`);
+      logger.warn({ name }, `Agent '${name}' is not registered.`);
       return;
     }
+    logger.info({ agent: name }, 'Unregistering agent');
     this.agents.delete(name);
   }
 
@@ -32,7 +36,9 @@ export class AgentRegistry implements AgentRegistryInterface {
   }
 
   getAvailableAgents(): string[] {
-    return Array.from(this.agents.keys());
+    const agents = Array.from(this.agents.keys());
+    logger.debug({ agents, count: agents.length }, 'Getting available agents');
+    return agents;
   }
 
   getAgentTools(): Tool[] {
@@ -40,6 +46,7 @@ export class AgentRegistry implements AgentRegistryInterface {
     for (const agent of this.agents.values()) {
       tools.push(...agent.tools);
     }
+    logger.debug({ toolsCount: tools.length }, 'Getting agent tools');
     return tools;
   }
 
@@ -62,6 +69,7 @@ export class AgentRegistry implements AgentRegistryInterface {
   }
 
   clear(): void {
+    logger.info({ count: this.agents.size }, 'Clearing agent registry');
     this.agents.clear();
   }
 

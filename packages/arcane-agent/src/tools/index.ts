@@ -2,6 +2,9 @@
  * Tools - Export all tool definitions
  */
 
+import { logger } from '@arcane/logger';
+export { logger };
+
 export { fileTools } from './FileTools';
 export { shellTools } from './ShellTools';
 export { gitTools } from './GitTools';

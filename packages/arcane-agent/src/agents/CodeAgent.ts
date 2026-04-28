@@ -3,6 +3,7 @@
  * Handle: grep, find, semantic_search, code refactoring
  */
 
+import { logger } from '@arcane/logger';
 import type { AgentDefinition, AgentState } from '../types';
 
 export const CodeAgent: AgentDefinition = {
@@ -73,18 +74,24 @@ export const CodeAgent: AgentDefinition = {
   ],
   node: async (state: AgentState): Promise<AgentState> => {
     const task = state.task.toLowerCase();
+    logger.debug({ task: state.task }, 'CodeAgent processing task');
 
     if (task.includes('search') || task.includes('grep') || task.includes('find')) {
       state.results['action'] = 'grep';
+      logger.debug({ action: 'grep' }, 'CodeAgent routing to grep');
     } else if (task.includes('analyze') || task.includes('review') || task.includes('understand')) {
       state.results['action'] = 'analyze_code';
+      logger.debug({ action: 'analyze_code' }, 'CodeAgent routing to analyze_code');
     } else if (task.includes('refactor') || task.includes('change') || task.includes('modify')) {
       state.results['action'] = 'refactor';
+      logger.debug({ action: 'refactor' }, 'CodeAgent routing to refactor');
     } else {
       state.results['action'] = 'analyze_code';
+      logger.debug({ action: 'analyze_code' }, 'CodeAgent routing to analyze_code (default)');
     }
 
     state.currentAgent = 'CodeAgent';
+    logger.info({ agent: 'CodeAgent', action: state.results['action'] }, 'CodeAgent completed');
     return state;
   },
 };

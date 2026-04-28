@@ -3,6 +3,7 @@
  */
 
 import { Glob } from 'bun';
+import { logger } from '@arcane/logger';
 import type { AgentDefinition } from '../types';
 import { AgentRegistry } from '../core/AgentRegistry';
 import { setGlobalRegistry } from './decorators';
@@ -25,9 +26,11 @@ export class PluginLoader {
     this.autoRegister = config.autoRegister ?? true;
 
     setGlobalRegistry(this.registry);
+    logger.debug({ pluginDirs: this.pluginDirs, autoRegister: this.autoRegister }, 'PluginLoader initialized');
   }
 
   async discover(): Promise<AgentDefinition[]> {
+    logger.info({ pluginDirs: this.pluginDirs }, 'Discovering plugins');
     const discovered: AgentDefinition[] = [];
 
     for (const dir of this.pluginDirs) {
@@ -35,6 +38,7 @@ export class PluginLoader {
       discovered.push(...agents);
     }
 
+    logger.info({ discoveredCount: discovered.length }, 'Plugin discovery completed');
     return discovered;
   }
 
@@ -57,11 +61,11 @@ export class PluginLoader {
           await this.loadModule(absolutePath);
           this.loadedModules.add(absolutePath);
         } catch (error) {
-          console.warn(`Failed to load plugin module ${absolutePath}:`, error);
+          logger.warn({ path: absolutePath, error: String(error) }, `Failed to load plugin module ${absolutePath}`);
         }
       }
     } catch (error) {
-      console.warn(`Failed to scan directory ${dir}:`, error);
+      logger.warn({ dir, error: String(error) }, `Failed to scan directory ${dir}`);
     }
 
     for (const agent of this.registry.getAll()) {

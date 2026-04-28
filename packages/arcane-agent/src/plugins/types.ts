@@ -2,6 +2,7 @@
  * Plugin types - Types untuk plugin agent system
  */
 
+import { logger } from '@arcane/logger';
 import type { AgentDefinition, Tool } from '../types';
 
 export interface PluginAgentDefinition extends AgentDefinition {

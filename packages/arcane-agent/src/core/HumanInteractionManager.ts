@@ -3,6 +3,7 @@
  * Agent bertanya & minta approval sebelum eksekusi
  */
 
+import { logger } from '@arcane/logger';
 import type {
   ApprovalRequest,
   ApprovalResponse,
@@ -27,6 +28,7 @@ export class HumanInteractionManager {
     this.promptFormatter = config.promptFormatter;
     this.approvalHandler =
       config.approvalHandler ?? this.defaultApprovalHandler.bind(this);
+    logger.debug({ enabled: this.enabled, autoApprove: this.autoApprove, timeout: this.timeout }, 'HumanInteractionManager initialized');
   }
 
   isEnabled(): boolean {
@@ -35,6 +37,7 @@ export class HumanInteractionManager {
 
   setStreamEmitter(emitter: (event: StreamEvent) => void): void {
     this.streamEmitter = emitter;
+    logger.debug('Stream emitter set for HITL');
   }
 
   async requestApproval(
@@ -43,7 +46,10 @@ export class HumanInteractionManager {
     description: string,
     context: Record<string, unknown>
   ): Promise<ApprovalResponse> {
+    logger.info({ agent, action }, 'Approval requested');
+
     if (!this.enabled) {
+      logger.debug('HITL disabled, auto-approving');
       return {
         requestId: 'disabled',
         decision: 'approve',
@@ -60,6 +66,7 @@ export class HumanInteractionManager {
     };
 
     this.approvalQueue.set(request.id, request);
+    logger.debug({ requestId: request.id, queueSize: this.approvalQueue.size }, 'Request added to queue');
 
     this.emitStreamEvent({
       type: 'approval_request',
@@ -71,6 +78,7 @@ export class HumanInteractionManager {
     let response: ApprovalResponse;
 
     if (this.autoApprove) {
+      logger.debug({ requestId: request.id }, 'Auto-approving (autoApprove=true)');
       response = {
         requestId: request.id,
         decision: 'approve',
@@ -82,6 +90,7 @@ export class HumanInteractionManager {
     }
 
     this.approvalQueue.delete(request.id);
+    logger.info({ requestId: request.id, decision: response.decision }, 'Approval response received');
 
     this.emitStreamEvent({
       type: 'approval_response',

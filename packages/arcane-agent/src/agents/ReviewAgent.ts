@@ -3,6 +3,7 @@
  * Handle: git_status, git_diff, git_log, code quality checks
  */
 
+import { logger } from '@arcane/logger';
 import type { AgentDefinition, AgentState } from '../types';
 
 export const ReviewAgent: AgentDefinition = {
@@ -73,22 +74,30 @@ export const ReviewAgent: AgentDefinition = {
   ],
   node: async (state: AgentState): Promise<AgentState> => {
     const task = state.task.toLowerCase();
+    logger.debug({ task: state.task }, 'ReviewAgent processing task');
 
     if (task.includes('pr ') || task.includes('pull request')) {
       state.results['action'] = 'review_pr';
+      logger.debug({ action: 'review_pr' }, 'ReviewAgent routing to review_pr');
     } else if (task.includes('diff') || task.includes('changes')) {
       state.results['action'] = 'git_diff';
+      logger.debug({ action: 'git_diff' }, 'ReviewAgent routing to git_diff');
     } else if (task.includes('status') || task.includes('state')) {
       state.results['action'] = 'git_status';
+      logger.debug({ action: 'git_status' }, 'ReviewAgent routing to git_status');
     } else if (task.includes('log') || task.includes('history') || task.includes('commits')) {
       state.results['action'] = 'git_log';
+      logger.debug({ action: 'git_log' }, 'ReviewAgent routing to git_log');
     } else if (task.includes('quality') || task.includes('check')) {
       state.results['action'] = 'check_code_quality';
+      logger.debug({ action: 'check_code_quality' }, 'ReviewAgent routing to check_code_quality');
     } else {
       state.results['action'] = 'git_status';
+      logger.debug({ action: 'git_status' }, 'ReviewAgent routing to git_status (default)');
     }
 
     state.currentAgent = 'ReviewAgent';
+    logger.info({ agent: 'ReviewAgent', action: state.results['action'] }, 'ReviewAgent completed');
     return state;
   },
 };
