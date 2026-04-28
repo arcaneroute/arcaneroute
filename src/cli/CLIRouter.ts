@@ -5,7 +5,8 @@
  */
 
 import { Command } from 'commander';
-import { ArcaneApp } from '../core/ArcaneApp.ts';
+import { ArcaneApp } from '../core/ArcaneApp';
+import { PluginManager } from '../plugins/PluginManager.ts';
 
 const DEFAULT_MAX_TOKENS = '100000';
 const DEFAULT_MAX_TURNS = '50';
@@ -96,6 +97,105 @@ program
       await app.shutdown();
     }
   });
+
+// arcane plugin
+const pluginManager = new PluginManager();
+
+program
+  .command('plugin')
+  .description('Manage plugins')
+  .addCommand(
+    new Command('install')
+      .description('Install a plugin')
+      .argument('<source>', 'Plugin source (npm package, local path, or github:user/repo)')
+      .action(async (source: string) => {
+        try {
+          await pluginManager.install(source);
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error(`\x1b[91m✖ ${msg}\x1b[0m`);
+          process.exit(1);
+        }
+      }),
+  )
+  .addCommand(
+    new Command('uninstall')
+      .description('Uninstall a plugin')
+      .argument('<id>', 'Plugin ID (e.g., arcane-plugin-git-summary)')
+      .action(async (id: string) => {
+        try {
+          await pluginManager.uninstall(id);
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error(`\x1b[91m✖ ${msg}\x1b[0m`);
+          process.exit(1);
+        }
+      }),
+  )
+  .addCommand(
+    new Command('list').description('List all installed plugins').action(() => {
+      const plugins = pluginManager.list();
+      if (plugins.length === 0) {
+        console.log('No plugins installed.');
+        return;
+      }
+      console.log(`\x1b[1mInstalled Plugins (${plugins.length}):\x1b[0m`);
+      for (const plugin of plugins) {
+        const status = plugin.enabled ? '\x1b[32menabled\x1b[0m' : '\x1b[33mdisabled\x1b[0m';
+        console.log(`  \x1b[36m${plugin.id}\x1b[0m @${plugin.version} [${status}]`);
+        console.log(`    Source: ${plugin.source}`);
+        console.log(`    Installed: ${new Date(plugin.installedAt).toLocaleDateString()}`);
+      }
+    }),
+  )
+  .addCommand(
+    new Command('enable')
+      .description('Enable a disabled plugin')
+      .argument('<id>', 'Plugin ID')
+      .action(async (id: string) => {
+        try {
+          pluginManager.enable(id);
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error(`\x1b[91m✖ ${msg}\x1b[0m`);
+          process.exit(1);
+        }
+      }),
+  )
+  .addCommand(
+    new Command('disable')
+      .description('Disable a plugin without uninstalling')
+      .argument('<id>', 'Plugin ID')
+      .action(async (id: string) => {
+        try {
+          pluginManager.disable(id);
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error(`\x1b[91m✖ ${msg}\x1b[0m`);
+          process.exit(1);
+        }
+      }),
+  )
+  .addCommand(
+    new Command('info')
+      .description('Show detailed info about a plugin')
+      .argument('<id>', 'Plugin ID')
+      .action((id: string) => {
+        const plugin = pluginManager.info(id);
+        if (!plugin) {
+          console.error(`\x1b[91m✖ Plugin not found: ${id}\x1b[0m`);
+          process.exit(1);
+        }
+        console.log(`\x1b[1m${plugin.id}\x1b[0m`);
+        console.log(`  Version: ${plugin.version}`);
+        console.log(
+          `  Status: ${plugin.enabled ? '\x1b[32menabled\x1b[0m' : '\x1b[33mdisabled\x1b[0m'}`,
+        );
+        console.log(`  Source: ${plugin.source}`);
+        console.log(`  Path: ${plugin.path}`);
+        console.log(`  Installed: ${new Date(plugin.installedAt).toLocaleString()}`);
+      }),
+  );
 
 // Default: show help
 if (process.argv.length <= 2) {

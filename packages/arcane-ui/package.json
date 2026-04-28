@@ -1,0 +1,35 @@
+{
+  "name": "arcane-ui",
+  "version": "0.1.0",
+  "description": "TUI components for Arcane Route",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "bun run build.ts",
+    "dev": "tsc --watch",
+    "test": "bun test",
+    "lint": "biome check .",
+    "format": "biome format --write ."
+  },
+  "dependencies": {
+    "@opentui/core": "^0.1.105",
+    "@opentui/solid": "^0.1.105",
+    "solid-js": "^1.9.0"
+  },
+  "peerDependencies": {
+    "@opentui/core": "latest",
+    "@opentui/solid": "latest",
+    "solid-js": "^1.9.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  }
+}
