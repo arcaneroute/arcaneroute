@@ -4,7 +4,7 @@
  */
 
 // Provider Types
-export type LLMProvider = 'anthropic' | 'openai';
+export type LLMProvider = 'anthropic' | 'openai' | 'arcane';
 export type EffortLevel = 'high' | 'medium' | 'low';
 
 // Message Types

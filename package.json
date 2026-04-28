@@ -7,6 +7,7 @@
     "@opentui/core": "latest",
     "@opentui/solid": "latest",
     "@types/node": "^25.6.0",
+    "arcane-agent": "workspace:*",
     "arcane-ui": "workspace:*",
     "chalk": "^5.3.0",
     "commander": "^12.0.0",

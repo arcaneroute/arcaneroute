@@ -92,7 +92,7 @@ export class ConfigManager {
   /** Returns the active LLM provider. Defaults to 'anthropic' if not set. */
   public getProvider(): LLMProvider {
     const raw = this.get('LLM_PROVIDER', 'anthropic').toLowerCase().trim();
-    if (raw === 'anthropic' || raw === 'openai') return raw;
+    if (raw === 'anthropic' || raw === 'openai' || raw === 'arcane') return raw;
     throw new UnknownProviderError(raw);
   }
 
@@ -161,7 +161,9 @@ export class ConfigManager {
   /** Returns the pricing for the current provider. */
   public getProviderPricing(): ProviderPricing {
     const provider = this.getProvider();
-    return provider === 'anthropic' ? ANTHROPIC_PRICING : OPENAI_PRICING;
+    if (provider === 'anthropic') return ANTHROPIC_PRICING;
+    if (provider === 'openai') return OPENAI_PRICING;
+    return ANTHROPIC_PRICING; // arcane uses anthropic under the hood
   }
 
   /** Returns the list of default ignore patterns for SWD scans. */
@@ -195,10 +197,28 @@ export class ConfigManager {
    */
   public validate(): void {
     const provider = this.getProvider();
-    if (provider === 'anthropic') {
+    if (provider === 'anthropic' || provider === 'arcane') {
       this.getAnthropicApiKey();
     } else {
       this.getOpenAIApiKey();
     }
+  }
+
+  /**
+   * Returns the underlying LLM provider that arcane-agent uses internally.
+   * For 'arcane' provider, returns 'anthropic' by default.
+   */
+  public getArcaneUnderlyingProvider(): 'anthropic' | 'openai' {
+    const provider = this.get('ARCANE_LLM_PROVIDER', 'anthropic').toLowerCase().trim();
+    if (provider === 'openai') return 'openai';
+    return 'anthropic';
+  }
+
+  /**
+   * Returns the model name for the underlying LLM.
+   */
+  public getArcaneModel(): string {
+    const underlying = this.getArcaneUnderlyingProvider();
+    return underlying === 'anthropic' ? this.getAnthropicModel() : this.getOpenAIModel();
   }
 }

@@ -8,6 +8,7 @@ import { UnknownProviderError } from '../types/errors.ts';
 import { AnthropicProvider } from './AnthropicProvider.ts';
 import type { ILLMClient } from './ILLMClient.ts';
 import { OpenAIProvider } from './OpenAIProvider.ts';
+import { ArcaneAgentProvider } from './providers/ArcaneAgentProvider.ts';
 
 /**
  * Factory for constructing the active ILLMClient.
@@ -17,9 +18,9 @@ import { OpenAIProvider } from './OpenAIProvider.ts';
 export class LLMClientFactory {
   /**
    * Create and return the active LLM client based on LLM_PROVIDER env var.
-   * Returns `AnthropicProvider` or `OpenAIProvider`.
+   * Returns `AnthropicProvider`, `OpenAIProvider`, or `ArcaneAgentProvider`.
    *
-   * @throws {UnknownProviderError} if LLM_PROVIDER is not `'anthropic'` or `'openai'`.
+   * @throws {UnknownProviderError} if LLM_PROVIDER is not valid.
    *
    * @example
    *   const client = LLMClientFactory.create(config);
@@ -32,6 +33,8 @@ export class LLMClientFactory {
         return new AnthropicProvider(config);
       case 'openai':
         return new OpenAIProvider(config);
+      case 'arcane':
+        return ArcaneAgentProvider.create(config);
       default: {
         // TypeScript exhaustiveness check
         const _exhaustive: never = provider;
