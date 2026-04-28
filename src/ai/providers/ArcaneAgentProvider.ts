@@ -15,6 +15,14 @@ import type {
 } from '../../types/index.ts';
 import type { ILLMClient } from '../ILLMClient.ts';
 
+interface FileAction {
+  type: 'CREATE' | 'MODIFY' | 'DELETE';
+  path: string;
+  content?: string;
+  oldString?: string;
+  newString?: string;
+}
+
 // Resolve path to arcane-agent's prompts directory (relative to project root)
 const AGENT_PROMPTS_DIR = resolve(process.cwd(), 'packages/arcane-agent/src/prompts');
 
@@ -197,6 +205,16 @@ export class ArcaneAgentProvider implements ILLMClient {
       }
     }
 
+    // Parse and execute FILE_ACTION blocks
+    const actions = this.parseFileActions(text);
+    console.log('[DEBUG] parseFileActions found', actions.length, 'actions');
+    console.log('[DEBUG] text contains FILE_ACTION:', text.includes('FILE_ACTION'));
+    if (actions.length > 0) {
+      console.log('[DEBUG] Executing file actions...');
+      const execResults = await this.executeFileActions(actions);
+      text = `${text}\n\n[FILE_ACTION EXECUTION]\n${execResults}`;
+    }
+
     // For now, no real streaming - text arrives all at once
     // TODO: implement real streaming in arcane-agent
     if (params.onTextDelta) {
@@ -223,11 +241,39 @@ export class ArcaneAgentProvider implements ILLMClient {
     const input = this.buildCorrectionInput(params);
 
     const result = await this.agent.run(input, context);
-    const output = String(result.output ?? '');
+
+    // Extract text from output (same logic as sendMessage)
+    let text = '';
+    if (typeof result.output === 'string') {
+      text = result.output;
+    } else if (result.output && typeof result.output === 'object') {
+      const output = result.output as Record<string, unknown>;
+      if (output.text && typeof output.text === 'string') {
+        text = output.text;
+      } else if (output.content && typeof output.content === 'string') {
+        text = output.content;
+      } else if (output.message && typeof output.message === 'string') {
+        text = output.message;
+      } else if (output.response && typeof output.response === 'string') {
+        text = output.response;
+      } else {
+        text = JSON.stringify(result.output, null, 2);
+      }
+    }
+
+    // Parse and execute FILE_ACTION blocks
+    const actions = this.parseFileActions(text);
+    console.log('[DEBUG] parseFileActions found', actions.length, 'actions');
+    console.log('[DEBUG] text contains FILE_ACTION:', text.includes('FILE_ACTION'));
+    if (actions.length > 0) {
+      console.log('[DEBUG] Executing file actions...');
+      const execResults = await this.executeFileActions(actions);
+      text = `${text}\n\n[FILE_ACTION EXECUTION]\n${execResults}`;
+    }
 
     return {
       thinking: '',
-      text: output,
+      text,
       usage: { inputTokens: 0, outputTokens: 0 },
     };
   }
@@ -276,5 +322,102 @@ export class ArcaneAgentProvider implements ILLMClient {
     const lastMessage = params.messages.at(-1)?.content ?? '';
 
     return `${history}\n\nCRITIQUE:\n${params.failureSummary}\n\nAttempt ${params.attemptsRemaining} remaining.\nuser: ${lastMessage}`;
+  }
+
+  /**
+   * Parse FILE_ACTION blocks from LLM output text.
+   */
+  private parseFileActions(text: string): FileAction[] {
+    const actions: FileAction[] = [];
+
+    // Match [FILE_ACTION] blocks - handle both quoted content and multi-line pipe content
+    const blockRegex = /\[FILE_ACTION\]([\s\S]*?)\[\/FILE_ACTION\]/gi;
+    let blockMatch: RegExpExecArray | null;
+
+    while ((blockMatch = blockRegex.exec(text)) !== null) {
+      const block = blockMatch[1];
+
+      // Extract type
+      const typeMatch = /type:\s*(\w+)/i.exec(block);
+      const pathMatch = /path:\s*([^\s\[\]]+)/i.exec(block);
+      const type = typeMatch?.[1]?.toUpperCase() as FileAction['type'] | undefined;
+      const path = pathMatch?.[1]?.trim();
+
+      if (!type || !path) continue;
+      if (!['CREATE', 'MODIFY', 'DELETE'].includes(type)) continue;
+
+      const action: FileAction = { type: type as FileAction['type'], path };
+
+      // Handle content: with pipe (multi-line)
+      const pipeMatch = /content:\s*\|[\r\n]+([\s\S]*?)(?=\n\s*(?:oldString|newString|\[\/FILE_ACTION\]|$))/i.exec(block);
+      if (pipeMatch?.[1]) {
+        action.content = pipeMatch[1].trim();
+      } else {
+        // Handle content: "quoted"
+        const contentMatch = /content:\s*"([^"]*)"/i.exec(block);
+        if (contentMatch?.[1]) action.content = contentMatch[1];
+      }
+
+      // Handle oldString and newString
+      const oldStringMatch = /oldString:\s*"([^"]*)"/i.exec(block);
+      const newStringMatch = /newString:\s*"([^"]*)"/i.exec(block);
+      if (oldStringMatch?.[1]) action.oldString = oldStringMatch[1];
+      if (newStringMatch?.[1]) action.newString = newStringMatch[1];
+
+      actions.push(action);
+    }
+
+    return actions;
+  }
+
+  /**
+   * Execute file actions and return results summary.
+   */
+  private async executeFileActions(actions: FileAction[]): Promise<string> {
+    const results: string[] = [];
+
+    for (const action of actions) {
+      try {
+        switch (action.type) {
+          case 'CREATE': {
+            if (!action.content) {
+              results.push(`CREATE ${action.path}: No content provided`);
+              break;
+            }
+            await Bun.write(action.path, action.content);
+            results.push(`CREATE ${action.path}: OK`);
+            break;
+          }
+          case 'MODIFY': {
+            if (!action.oldString || !action.newString) {
+              results.push(`MODIFY ${action.path}: oldString and newString required`);
+              break;
+            }
+            const content = await Bun.file(action.path).text();
+            if (!content.includes(action.oldString)) {
+              results.push(`MODIFY ${action.path}: oldString not found`);
+              break;
+            }
+            const newContent = content.replace(action.oldString, action.newString);
+            await Bun.write(action.path, newContent);
+            results.push(`MODIFY ${action.path}: OK`);
+            break;
+          }
+          case 'DELETE': {
+            const file = Bun.file(action.path);
+            if (await file.exists()) {
+              const { rm } = await import('node:fs/promises');
+              await rm(action.path);
+            }
+            results.push(`DELETE ${action.path}: OK`);
+            break;
+          }
+        }
+      } catch (error) {
+        results.push(`${action.type} ${action.path}: FAILED - ${error}`);
+      }
+    }
+
+    return results.join('\n');
   }
 }
