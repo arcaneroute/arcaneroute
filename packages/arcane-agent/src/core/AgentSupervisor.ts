@@ -10,6 +10,7 @@ import type {
   Tool,
   HITLConfig,
   StreamEvent,
+  Message,
 } from '../types';
 import { ChannelBus } from './ChannelBus';
 import { AgentRegistry } from './AgentRegistry';
@@ -21,6 +22,11 @@ export interface SupervisorConfig {
   channels: ChannelBus;
   hitl?: HITLConfig;
   promptsDir?: string;
+  llmClient?: LLMClientInterface;
+}
+
+export interface LLMClientInterface {
+  complete(messages: Message[]): Promise<string>;
 }
 
 export class AgentSupervisor {
@@ -28,6 +34,7 @@ export class AgentSupervisor {
   private channels: ChannelBus;
   private hitlManager: HumanInteractionManager;
   private prompts: PromptManager;
+  private llmClient?: LLMClientInterface;
 
   constructor(config: SupervisorConfig) {
     this.registry = config.registry;
@@ -37,6 +44,11 @@ export class AgentSupervisor {
       promptsDir: config.promptsDir || './src/prompts',
       cachePrompts: true,
     });
+    this.llmClient = config.llmClient;
+  }
+
+  setLLMClient(client: LLMClientInterface): void {
+    this.llmClient = client;
   }
 
   async route(task: string): Promise<string[]> {
@@ -117,6 +129,20 @@ export class AgentSupervisor {
     try {
       const resultState = await agent.node(state);
 
+      // If LLM client is available and this is ChatAgent, generate response via LLM
+      if (this.llmClient) {
+        const chatPrompt = `You are a helpful AI assistant. Answer the following question or request:\n\n${state.task}`;
+        const llmResponse = await this.llmClient.complete([
+          { role: 'user', content: chatPrompt },
+        ]);
+
+        resultState.messages.push({
+          role: 'assistant',
+          content: llmResponse,
+        });
+        resultState.results['response'] = llmResponse;
+      }
+
       return {
         success: true,
         output: resultState.results,
@@ -164,7 +190,21 @@ Tools available: ${agent.tools.map((t) => t.name).join(', ')}`;
   }
 
   private async completeWithLLM(prompt: string): Promise<string> {
-    return `ChatAgent`;
+    // If no LLM client is configured, return default routing
+    if (!this.llmClient) {
+      return 'ChatAgent';
+    }
+
+    try {
+      const messages: Message[] = [
+        { role: 'user', content: prompt },
+      ];
+      const response = await this.llmClient.complete(messages);
+      return response;
+    } catch (error) {
+      console.warn('LLM call failed:', error);
+      return 'ChatAgent';
+    }
   }
 
   setStreamEmitter(emitter: (event: StreamEvent) => void): void {

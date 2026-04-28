@@ -119,6 +119,7 @@ export interface AgentConfig {
   persistence?: PersistenceConfig;
   streaming?: StreamingConfig;
   hitl?: HITLConfig;
+  promptsDir?: string;
 }
 
 export interface AgentInstance {
@@ -132,6 +133,7 @@ export interface AgentInstance {
   requestApproval(request: ApprovalRequest): Promise<ApprovalResponse>;
   getPendingApprovals(): ApprovalRequest[];
   setApprovalHandler(handler: ApprovalHandler): void;
+  setLLMClient(client: unknown): void;
 }
 
 export interface AgentResult {

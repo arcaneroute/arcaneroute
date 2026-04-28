@@ -132,6 +132,10 @@ export class ArcaneAgentFactory {
       setApprovalHandler(handler: ApprovalHandler): void {
         supervisor.getHitlManager().setApprovalHandler(handler);
       },
+
+      setLLMClient(client: unknown): void {
+        supervisor.setLLMClient(client as any);
+      },
     };
 
     return agent;

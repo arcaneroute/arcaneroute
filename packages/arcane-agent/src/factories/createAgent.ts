@@ -36,7 +36,7 @@ export function createAgent(config: AgentConfig): AgentInstance {
     registry,
     channels,
     hitl: config.hitl,
-    promptsDir: './src/prompts',
+    promptsDir: config.promptsDir ?? './src/prompts',
   });
 
   let currentState: AgentState | null = null;
@@ -118,6 +118,10 @@ export function createAgent(config: AgentConfig): AgentInstance {
 
     setApprovalHandler(handler: ApprovalHandler): void {
       supervisor.getHitlManager().setApprovalHandler(handler);
+    },
+
+    setLLMClient(client: unknown): void {
+      supervisor.setLLMClient(client as any);
     },
   };
 
