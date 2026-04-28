@@ -25,6 +25,9 @@
   ],
   "author": "Arcane Route Team",
   "license": "MIT",
+  "dependencies": {
+    "@arcane/logger": "workspace:*"
+  },
   "peerDependencies": {
     "typescript": "^5.0.0"
   },

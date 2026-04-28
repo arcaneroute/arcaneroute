@@ -231,11 +231,36 @@ export class ChatCommand extends BaseCommand {
   private mightHaveFileOperations(input: string): boolean {
     const lower = input.toLowerCase();
     const fileKeywords = [
-      'edit', 'create', 'delete', 'modify', 'update', 'remove', 'add', 'write', 'read', 'show',
-      'file', 'path', 'directory', 'folder', 'src/', 'lib/', 'test/', 'config', 'package',
-      '.ts', '.tsx', '.js', '.jsx', '.json', '.md', '.yaml', '.yml', '.toml',
+      'edit',
+      'create',
+      'delete',
+      'modify',
+      'update',
+      'remove',
+      'add',
+      'write',
+      'read',
+      'show',
+      'file',
+      'path',
+      'directory',
+      'folder',
+      'src/',
+      'lib/',
+      'test/',
+      'config',
+      'package',
+      '.ts',
+      '.tsx',
+      '.js',
+      '.jsx',
+      '.json',
+      '.md',
+      '.yaml',
+      '.yml',
+      '.toml',
     ];
-    return fileKeywords.some(keyword => lower.includes(keyword));
+    return fileKeywords.some((keyword) => lower.includes(keyword));
   }
 
   // SWD Verification

@@ -4,8 +4,7 @@
  */
 
 import { ConversationManager } from '../ai/ConversationManager.ts';
-import { LLMClientFactory } from '../ai/LLMClientFactory.ts';
-import { ThinkingAdapter } from '../ai/ThinkingAdapter.ts';
+import { ArcaneAgentProvider } from '../ai/providers/ArcaneAgentProvider.ts';
 import { BudgetLimiter } from '../budget/BudgetLimiter.ts';
 import { Renderer } from '../cli/Renderer.ts';
 import { ChatCommand } from '../commands/ChatCommand.ts';
@@ -22,6 +21,7 @@ import type { ChatOptions, DreamOptions, VerifyOptions } from '../types/index.ts
 import { ConfigManager } from './ConfigManager.ts';
 import { EventBus } from './EventBus.ts';
 import { EventEmitter } from 'node:events';
+import * as readline from 'node:readline';
 
 /**
  * Root application bootstrapper.
@@ -48,6 +48,38 @@ export class ArcaneApp {
    */
   private isTUIMode(): boolean {
     return process.env.TUI_ENABLED === 'true';
+  }
+
+  /**
+   * Prompt user for TUI confirmation since it's experimental.
+   * Returns true if user wants to try TUI, false to fallback to CLI.
+   */
+  private async confirmTUI(): Promise<boolean> {
+    return new Promise((resolve) => {
+      let answered = false;
+
+      console.log('\n\x1b[33m⚠️  OpenTUI is experimental and may have bugs.\x1b[0m\n');
+      console.log('Do you want to try OpenTUI? (y/N): ');
+
+      const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+      });
+
+      rl.on('line', (answer: string) => {
+        if (answered) return;
+        answered = true;
+        rl.close();
+        const response = answer.trim().toLowerCase();
+        resolve(response === 'y' || response === 'yes');
+      });
+
+      rl.on('close', () => {
+        if (answered) return;
+        answered = true;
+        resolve(false);
+      });
+    });
   }
 
   /**
@@ -87,12 +119,19 @@ export class ArcaneApp {
       return this.runChatANSI(rawOptions);
     }
 
-    const adapter = ThinkingAdapter.fromString(rawOptions.effort ?? 'high');
+    // Ask for confirmation since TUI is experimental
+    const confirmed = await this.confirmTUI();
+    if (!confirmed) {
+      console.log("Falling back to ANSI mode.\n");
+      return this.runChatANSI(rawOptions);
+    }
+
+    const effort = (rawOptions.effort ?? 'high') as 'high' | 'medium' | 'low';
     const parsedMaxTokens = rawOptions.maxTokens ? parseInt(rawOptions.maxTokens, 10) : undefined;
     const parsedMaxTurns = rawOptions.maxTurns ? parseInt(rawOptions.maxTurns, 10) : undefined;
 
     const options: ChatOptions = {
-      effort: adapter.getEffort(),
+      effort,
       dryRun: rawOptions.dryRun ?? false,
       verbose: rawOptions.verbose ?? false,
       ...(parsedMaxTokens !== undefined ? { maxTokens: parsedMaxTokens } : {}),
@@ -101,7 +140,7 @@ export class ArcaneApp {
 
     // Build deps but don't run ChatCommand yet - TUI takes over
     const { client, swdEngine, memoryManager, budgetLimiter, conversationManager } =
-      this.buildChatDeps(options);
+      await this.buildChatDeps(options);
 
     // Wire up plugin dependencies before loading plugins
     this.pluginLoader.setBudgetLimiter({
@@ -235,7 +274,7 @@ export class ArcaneApp {
         () => (
           <AppEventsProvider events={events}>
             <ArcaneApp
-              onSend={(text) => bus.emit('user:message', { text })}
+              onSend={(text: string) => bus.emit('user:message', { text })}
               onCancel={() => bus.emit('user:cancel', undefined)}
               commandHistory={[]}
             />
@@ -264,12 +303,12 @@ export class ArcaneApp {
     maxTokens?: string;
     maxTurns?: string;
   }): Promise<void> {
-    const adapter = ThinkingAdapter.fromString(rawOptions.effort ?? 'high');
+    const effort = (rawOptions.effort ?? 'high') as 'high' | 'medium' | 'low';
     const parsedMaxTokens = rawOptions.maxTokens ? parseInt(rawOptions.maxTokens, 10) : undefined;
     const parsedMaxTurns = rawOptions.maxTurns ? parseInt(rawOptions.maxTurns, 10) : undefined;
 
     const options: ChatOptions = {
-      effort: adapter.getEffort(),
+      effort,
       dryRun: rawOptions.dryRun ?? false,
       verbose: rawOptions.verbose ?? false,
       ...(parsedMaxTokens !== undefined ? { maxTokens: parsedMaxTokens } : {}),
@@ -277,7 +316,7 @@ export class ArcaneApp {
     };
 
     const { client, swdEngine, memoryManager, budgetLimiter, conversationManager } =
-      this.buildChatDeps(options);
+      await this.buildChatDeps(options);
 
     // Wire up plugin dependencies before loading plugins
     this.pluginLoader.setBudgetLimiter({
@@ -351,7 +390,7 @@ export class ArcaneApp {
 
     this.config.validate();
 
-    const llmClient = LLMClientFactory.create(this.config);
+    const llmClient = await ArcaneAgentProvider.create(this.config);
     const memoryManager = new MemoryManager(this.config);
     await memoryManager.load();
 
@@ -383,10 +422,10 @@ export class ArcaneApp {
    * Instantiate and wire all services required by ChatCommand.
    * Kept separate from runChat() to keep the public API clean and testable.
    */
-  private buildChatDeps(options: ChatOptions) {
+  private async buildChatDeps(options: ChatOptions) {
     const rootDir = process.cwd();
 
-    const client = LLMClientFactory.create(this.config);
+    const client = await ArcaneAgentProvider.create(this.config);
     const conversationManager = new ConversationManager();
 
     const ignoreParser = new IgnoreParser(this.config);
