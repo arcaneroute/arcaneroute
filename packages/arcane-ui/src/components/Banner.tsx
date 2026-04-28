@@ -13,10 +13,9 @@ const STATUS_CONFIG = {
 interface HeaderProps {
   version?: string;
   provider?: string;
-  model?: string;
 }
 
-export function Header({ version = "1.0.0", provider = "openai", model = "claude-sonnet-4" }: HeaderProps) {
+export function Header({ version = "1.0.0", provider = "openai" }: HeaderProps) {
   const { state } = useAppEvents();
   const status = state().appStatus;
   const config = STATUS_CONFIG[status];
@@ -28,18 +27,12 @@ export function Header({ version = "1.0.0", provider = "openai", model = "claude
       padding={1}
       justifyContent="space-between"
     >
-      <box gap={1}>
-        <text fg="#FF00FF" attributes={1}>ARCANE ROUTE</text>
-        <text fg="#808080">v{version}</text>
-      </box>
-
-      <box gap={1}>
-        <text fg="#00FFFF">{provider.toUpperCase()}</text>
-        <text fg="#808080">|</text>
-        <text fg="#00FFFF">{model}</text>
-        <text fg="#808080">|</text>
-        <text fg={config.fg} attributes={1}>{config.icon} {config.label}</text>
-      </box>
+      <text fg="#FF00FF" attributes={1}>ARCANE</text>
+      <text fg="#808080">v{version}</text>
+      <text fg="#808080">|</text>
+      <text fg="#00FFFF">{provider.toUpperCase()}</text>
+      <text fg="#808080">|</text>
+      <text fg={config.fg} attributes={1}>{config.icon} {config.label}</text>
     </box>
   );
 }
