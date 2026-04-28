@@ -4,6 +4,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.20.0",
+    "@arcane/logger": "workspace:*",
     "@opentui/core": "latest",
     "@opentui/solid": "latest",
     "@types/node": "^25.6.0",
@@ -31,11 +32,11 @@
   "name": "arcane-route",
   "scripts": {
     "build": "bun run build.ts",
-    "check": "biome check src/ test/",
-    "check:fix": "biome check --write src/ test/",
+    "check": "biome check src/ test/ plugins/ packages/",
+    "check:fix": "biome check --write src/ test/ plugins/ packages/",
     "dev": "bun --watch --preload ./node_modules/@opentui/solid/scripts/preload.ts ./src/cli/CLIRouter.ts chat",
-    "format": "biome format --write src/ test/",
-    "lint": "biome lint src/ test/",
+    "format": "biome format --write src/ test/ plugins/ packages/",
+    "lint": "biome lint src/ test/ plugins/ packages/",
     "start": "bun --preload ./node_modules/@opentui/solid/scripts/preload.ts ./src/cli/CLIRouter.ts",
     "test": "bun test",
     "test:watch": "bun test --watch",
