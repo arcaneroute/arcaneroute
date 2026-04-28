@@ -170,6 +170,65 @@ export class ArcaneApp {
       bus.emit('user:cancel', undefined);
     });
 
+    // Process user messages in TUI mode
+    bus.on('user:message', async ({ text }: { text: string }) => {
+      const input = text.trim();
+      if (!input) return;
+
+      // Emit status to UI
+      bus.emit('app:status', { status: 'running' });
+
+      try {
+        // Add user message to history
+        conversationManager.addUserMessage(input);
+
+        // Emit message to UI
+        bus.emit('app:message', {
+          message: { role: 'user', text: input, timestamp: new Date() },
+        });
+
+        // Check budget
+        if (budgetLimiter.isExceeded()) {
+          bus.emit('app:status', { status: 'error' });
+          return;
+        }
+
+        // Call LLM with streaming
+        bus.emit('app:status', { status: 'streaming' });
+
+        let fullResponse = '';
+        const response = await client.sendMessage({
+          messages: [...conversationManager.getHistory()],
+          effort: options.effort,
+          systemPrompt: this.config.getSystemPrompt(),
+          onThinkingDelta: () => {},
+          onTextDelta: (delta) => {
+            fullResponse += delta;
+            bus.emit('app:stream', { chunk: delta });
+          },
+        });
+
+        bus.emit('app:stream-end', undefined);
+
+        // Add assistant response to history
+        conversationManager.addAssistantMessage(response.text);
+        budgetLimiter.recordTurn(response.usage);
+
+        // Emit message to UI
+        bus.emit('app:message', {
+          message: { role: 'assistant', text: response.text, timestamp: new Date() },
+        });
+
+        // Emit budget status
+        bus.emit('app:budget', { budget: budgetLimiter.getSummary() });
+
+        bus.emit('app:status', { status: 'complete' });
+      } catch (err) {
+        console.error('[TUI] LLM error:', err);
+        bus.emit('app:status', { status: 'error' });
+      }
+    });
+
     try {
       // Render the TUI app using Solid render
       await render(

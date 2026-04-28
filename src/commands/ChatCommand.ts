@@ -147,8 +147,10 @@ export class ChatCommand extends BaseCommand {
     try {
       this.budgetLimiter.assertNotExceeded();
 
-      // Pre-snapshot (before AI writes anything)
-      if (!dryRun) {
+      // Only capture SWD snapshot if input might involve file operations
+      const needsSwd = !dryRun && this.mightHaveFileOperations(userInput);
+
+      if (needsSwd) {
         await this.swdEngine.preCapture();
         this.renderer.printSnapshotStatus('Pre-snapshot', this.swdEngine.getPreSnapshotFileCount());
       }
@@ -184,8 +186,8 @@ export class ChatCommand extends BaseCommand {
       this.conversationManager.addAssistantMessage(response.text);
       this.budgetLimiter.recordTurn(response.usage);
 
-      // Post-snapshot and SWD verification
-      if (!dryRun) {
+      // Post-snapshot and SWD verification (only if we did pre-snapshot)
+      if (needsSwd) {
         await this.swdEngine.postCapture();
         this.renderer.printSnapshotStatus(
           'Post-snapshot',
@@ -220,6 +222,20 @@ export class ChatCommand extends BaseCommand {
       // Pop the user message we added if the turn failed
       this.conversationManager.clear();
     }
+  }
+
+  /**
+   * Check if user input might involve file operations.
+   * Used to skip SWD snapshot for pure chat turns.
+   */
+  private mightHaveFileOperations(input: string): boolean {
+    const lower = input.toLowerCase();
+    const fileKeywords = [
+      'edit', 'create', 'delete', 'modify', 'update', 'remove', 'add', 'write', 'read', 'show',
+      'file', 'path', 'directory', 'folder', 'src/', 'lib/', 'test/', 'config', 'package',
+      '.ts', '.tsx', '.js', '.jsx', '.json', '.md', '.yaml', '.yml', '.toml',
+    ];
+    return fileKeywords.some(keyword => lower.includes(keyword));
   }
 
   // SWD Verification

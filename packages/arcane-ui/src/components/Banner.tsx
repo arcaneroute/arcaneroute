@@ -22,10 +22,13 @@ export function Header({ version = "1.0.0", provider = "openai" }: HeaderProps) 
 
   return (
     <box
+      flexDirection="row"
+      width="100%"
       borderStyle="single"
       borderColor="#808080"
       padding={1}
-      justifyContent="space-between"
+      justifyContent="center"
+      gap={1}
     >
       <text fg="#FF00FF" attributes={1}>ARCANE</text>
       <text fg="#808080">v{version}</text>

@@ -1,9 +1,8 @@
-import { createSignal, onMount, onCleanup, Show } from "solid-js";
 import { useKeyboard } from "@opentui/solid";
+import { createSignal, onCleanup, onMount, Show } from "solid-js";
 import { useAppEvents } from "../../events/useAppEvents";
 
 const BOLD = 1;
-const ITALIC = 2;
 
 interface ChatInputProps {
   disabled?: boolean;
@@ -19,7 +18,7 @@ export function ChatInput({ disabled = false, commandHistory = [] }: ChatInputPr
   onMount(() => {
     const interval = setInterval(() => {
       setCursorVisible(v => !v);
-    }, 500);
+    }, 530);
     onCleanup(() => clearInterval(interval));
   });
 
@@ -27,8 +26,11 @@ export function ChatInput({ disabled = false, commandHistory = [] }: ChatInputPr
     if (disabled) return;
 
     if (key.name === "return" && !key.shift) {
-      if (input().trim()) {
-        emit("user:send", { text: input() });
+      const text = input();
+      console.log("[ChatInput] Enter pressed, input:", JSON.stringify(text));
+      if (text.trim()) {
+        console.log("[ChatInput] Emitting user:send");
+        emit("user:send", { text });
         setInput("");
         setHistoryIndex(-1);
       }
@@ -67,47 +69,22 @@ export function ChatInput({ disabled = false, commandHistory = [] }: ChatInputPr
   });
 
   const borderColor = disabled ? "#808080" : "#00FFFF";
-  const dimColor = "#808080";
 
   return (
     <box
-      flexDirection="column"
+      flexDirection="row"
+      alignItems="center"
+      gap={1}
       borderStyle="single"
       borderColor={borderColor}
       padding={1}
       marginTop={1}
     >
-      <box alignItems="center" gap={1} marginBottom={1}>
-        <text fg={dimColor}>[</text>
-        <text fg={disabled ? dimColor : "#00FFFF"} attributes={BOLD}>CHAT INPUT</text>
-        <text fg={dimColor}>|</text>
-        <text fg={disabled ? dimColor : "#00FF00"}>●</text>
-        <text fg={dimColor}>]</text>
-      </box>
-
-      <box alignItems="center" gap={1}>
-        <text fg="#00FFFF" attributes={BOLD}>&gt;</text>
-        <text fg="#FFFFFF">{input()}</text>
-        <Show when={cursorVisible()}>
-          <text fg="#00FFFF">_</text>
-        </Show>
-        <text fg={dimColor}>[Enter]</text>
-      </box>
-
-      {disabled ? (
-        <box marginTop={1} alignItems="center" gap={1}>
-          <text fg="#FFFF00">●</text>
-          <text fg={dimColor} attributes={ITALIC}>Processing...</text>
-        </box>
-      ) : (
-        <box marginTop={1} alignItems="center" gap={2}>
-          <text fg={dimColor}>↑↓ history</text>
-          <text fg={dimColor}>|</text>
-          <text fg={dimColor}>Shift+Enter newline</text>
-          <text fg={dimColor}>|</text>
-          <text fg={dimColor}>Ctrl+C cancel</text>
-        </box>
-      )}
+      <text fg="#00FFFF" attributes={BOLD}>&gt;</text>
+      <text fg="#FFFFFF">{input()}</text>
+      <Show when={cursorVisible()}>
+        <text fg="#00FFFF" attributes={BOLD}>▌</text>
+      </Show>
     </box>
   );
 }
